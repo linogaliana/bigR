@@ -1,0 +1,11 @@
+Package: bigR
+Title: Statistiques computationnelles et big data dans R
+Version: 0.0.0.9000
+Authors@R: c(
+    person("Lino", "Galiana", role = c("aut", "cre"), email = "lino.galiana@insee.fr")
+    )
+Description: What the package does (one paragraph).
+License: CC BY-NC-SA 4.0
+Encoding: UTF-8
+Imports:
+    rmarkdown
