@@ -1,5 +1,5 @@
 ---
-title: "01_FonctionnementR"
+title: "Principes: pourquoi et comment optimiser en R?"
 author: "Lino Galiana"
 date: "14 juin 2019"
 output: html_document
@@ -9,22 +9,229 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+Main risk is technical debt. This has been defined as “not quite right code which we postpone making it right”
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+It involves considering the project’s aims in the context of available resources (e.g. computational and programmer resources), project scope, time-scales and suitable software.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+# Outils que l'on va utiliser
 
-```{r cars}
-summary(cars)
+Benchmarking
+Profiling
+
+
+# Appels de fonctions
+
+Ultimately calling an `R` function always ends up calling some underlying `C`/`Fortran` code. For example the base `R` function `runif()` only contains a single line that consists of a call to `C_runif()`
+
+```{r}
+runif
 ```
 
-## Including Plots
+A golden rule in `R` programming is to access the underlying `C`/`Fortran` routines as quickly as possible; the fewer functions calls required to achieve this, the better.
 
-You can also embed plots, for example:
+For example, suppose `x` is a standard vector of length `n`. Then
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r, eval = FALSE}
+x = x + 1
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+involves a single function call to the `+` function. Whereas the `for` loop
+
+```{r, eval = FALSE}
+for(i in seq_len(n)) 
+  x[i] = x[i] + 1 
+```
+
+has
+
+* *n* function calls to `+`
+* *n* function calls to the `[` function;
+* *n* function calls to the `[<-` function (used in the assignment operation);
+* Two other function calls: one to `for` and another to `seq_len()`.
+
+It isn’t that the for loop is slow, rather it is because we have many more function calls. Each individual function call is quick, but the total combination is slow.
+
+Use the `microbenchmark` package to compare the vectorised construct `x = x + 1`, to the for loop version. Try varying the size of the input vector.
+
+```{r}
+plus_one <- function(n){
+  x <- runif(n)
+  x <- x+1
+  return("OK")
+}
+
+plus_one_for <- function(n){
+  
+  x <- runif(n)
+  for(i in seq_len(n)) x[i] = x[i] + 1 
+  return("OK")
+  
+  return(x)
+}
+
+results_plus_one <- microbenchmark::microbenchmark(
+  plus_one(10^2),
+  plus_one(10^3),
+  plus_one(10^4),
+  plus_one(10^5),
+  plus_one_for(10^2),
+  plus_one_for(10^3),
+  plus_one_for(10^4),
+  plus_one_for(10^5),
+  times = 50
+  )
+ggplot2::autoplot(results_plus_one)
+
+```
+
+
+### Memory allocation
+
+Another general technique is to be careful with memory allocation. If possible pre-allocate your vector then fill in the values
+
+You should also consider pre-allocating memory for data frames and lists. Never grow an object. A good rule of thumb is to compare your objects before and after a `for` loop; have they increased in length? 
+
+Let’s consider three methods of creating a sequence of numbers. **Method** 1 creates an empty vector and gradually increases (or grows) the length of the vector
+
+```{r}
+method1 = function(n) {
+  vec = NULL # Or vec = c()
+  for(i in seq_len(n))
+    vec = c(vec, i)
+  vec
+}
+```
+
+**Method** 2 creates an object of the final length and then changes the values in the object by subscripting:
+
+```{r}
+method2 = function(n) {
+  vec = numeric(n)
+  for(i in seq_len(n))
+    vec[i] = i
+  vec
+}
+```
+
+**Method 3** directly creates the final object
+
+```{r}
+method3 = function(n) seq_len(n)
+```
+
+To compare the three methods we use the `microbenchmark()` function from the previous chapter
+
+```{r}
+n <- 1000
+ggplot2::autoplot(
+  microbenchmark::microbenchmark(times = 100, unit = "s", 
+                                 method1(n), method2(n), method3(n))
+)
+```
+
+The table below shows the timing in seconds on my machine for these three methods for 100 run of those methods for a 1000 observations. The relationships for varying *n* are all roughly linear on a log-log scale, but the timings between methods are drastically different. Notice that the timings are no longer trivial. When $n=10^7$, method 1 takes around an hour whilst method 2 takes 2 seconds and method 3 is almost instantaneous. Remember the golden rule; access the underlying `C`/`Fortran` code as quickly as possible.
+
+
+### Vectorised code
+
+Recall the golden rule in R programming, access the underlying C/Fortran routines as quickly as possible; the fewer functions calls required to achieve this, the better. With this mind, many R functions are vectorised, that is the function’s inputs and/or outputs naturally work with vectors, reducing the number of function calls required. For example, the code
+
+```{r, eval = TRUE}
+n <- 10^4
+x = runif(n) + 1
+```
+
+performs two vectorised operations. 
+
+1. First runif() returns n random numbers.
+2. Second we add 1 to each element of the vector. In general it is a good idea to exploit vectorised functions.
+
+Consider this piece of R code that calculates the sum of `log(x)`
+
+```{r, eval = TRUE}
+log_sum = 0
+for(i in 1:length(x))
+  log_sum = log_sum + log(x[i])
+```
+
+This code could easily be vectorised via
+
+```{r}
+log_sum = sum(log(x))
+```
+
+Writing code this way has a number of benefits.
+
+1. It’s faster. When n=107, the `R` way is about forty times faster.
+2. It’s neater.
+3. It doesn’t contain a bug when x is of length 0
+
+
+As with the general example in section 3.2, the slowdown isn’t due to the for loop. Instead, it’s because there are many more functions calls.
+
+#### Example: Monte-Carlo integration
+
+It’s also important to make full use of R functions that use vectors. For example, suppose we wish to estimate the integral 
+
+$$
+\int_0^1 x^2dx
+$$
+
+using a Monte-Carlo method. Essentially, we throw darts at the curve and count the number of darts that fall below the curve
+
+Monte Carlo Integration
+
+```{r, eval = FALSE}
+
+Initialise: hits = 0
+for i in 1:N:
+  Generate two random numbers, U1,U2, between 0 and 1
+  If U2<U21,
+    then hits = hits + 1
+end for
+
+Area estimate = hits/N
+```
+
+Implementing this Monte-Carlo algorithm in `R` would typically lead to something like:
+
+```{r}
+monte_carlo = function(N) {
+  hits = 0
+  for (i in seq_len(N)) {
+    u1 = runif(1)
+    u2 = runif(1)
+    if (u1 ^ 2 > u2)
+      hits = hits + 1
+  }
+  return(hits / N)
+}
+```
+
+In R this takes a few seconds:
+
+```{r}
+N = 500000
+system.time(monte_carlo(N))
+```
+
+In contrast a more R-centric approach would be
+
+```{r}
+monte_carlo_vec = function(N) sum(runif(N)^2 > runif(N))/N
+```
+
+The monte_carlo_vec() function contains (at least) four aspects of vectorisation
+
+1. The runif() function call is now fully vectorised;
+1. We raise entire vectors to a power via ^;
+1. Comparisons using > are vectorised;
+1. Using sum() is quicker than an equivalent for loop.
+
+The function `monte_carlo_vec()` is around 30 times faster than monte_carlo():
+```{r}
+N = 500000
+system.time(monte_carlo_vec(N))
+```
+
+
