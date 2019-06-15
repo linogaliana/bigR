@@ -8,4 +8,5 @@ Description: What the package does (one paragraph).
 License: CC BY-NC-SA 4.0
 Encoding: UTF-8
 Imports:
+    microbenchmark,
     rmarkdown
