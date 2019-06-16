@@ -3,11 +3,14 @@ title: "Principes: pourquoi et comment optimiser en R?"
 author: "Lino Galiana"
 date: "14 juin 2019"
 output: html_document
+bibliography: ../bibliography.bib
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+L'objectif du cours est d'offrir une introduction aux possibilités qu'offre `R` pour faire des calculs lourds et lire de grosses bases de données. Les deux principales ressources disponibles sur le sujet sont les ouvrages *Efficient R Programming* [@gillespie2016efficient] et *Advanced R* [@wickham2014advanced].
 
 Main risk is technical debt. This has been defined as “not quite right code which we postpone making it right”
 
@@ -235,3 +238,6 @@ system.time(monte_carlo_vec(N))
 ```
 
 
+
+
+# References
