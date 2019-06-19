@@ -10,11 +10,23 @@ bibliography: ../bibliography.bib
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-L'objectif du cours est d'offrir une introduction aux possibilités qu'offre `R` pour faire des calculs lourds et lire de grosses bases de données. Les deux principales ressources disponibles sur le sujet sont les ouvrages *Efficient R Programming* [@gillespie2016efficient] et *Advanced R* [@wickham2014advanced].
+>  Premature optimization is the root of all evil (or at least most of it) in programming.
+>
+> Donald Knuth
 
-Main risk is technical debt. This has been defined as “not quite right code which we postpone making it right”
+L'objectif du cours est d'offrir une introduction aux possibilités qu'offre `R` pour faire des calculs lourds et lire de grosses bases de données. Les deux principales ressources disponibles sur le sujet sont les ouvrages *Efficient R Programming* [@gillespie2016efficient] et *Advanced R* [@wickham2014advanced]^[Dans ce cours, on adoptera la vision de l'efficience au sens d'efficience algorithmique, i.e. la vitesseà laquelle un programme s'exécute et les ressources nécessaires pour l'accomplissement de celui-ci. Nous parlerons peu de la notion d'efficacité de programmation: quantité de travail utile qu'un programmeur peut réaliser par unité de temps. A cet égard, des astuces et règles utiles sont présentées dans la Formation *travail collaboratif sous R* et dans le livre de @gillespie2016efficient].
 
-It involves considering the project’s aims in the context of available resources (e.g. computational and programmer resources), project scope, time-scales and suitable software.
+Avant de chercher à optimiser, le premier réflexe à adopter est de bien structurer le problème que l'on vise à résoudre et sélectionner le format de données et les *packages* les plus adéquats. `R` étant un langage très malléable, il existe généralement plusieurs manières de résoudre un problème: avoir un code efficace nécessite en premier lieu de choisir le meilleur outil disponible en `R`. Par exemple, si on doit passer par une boucle, il vaut mieux choisir rapidement de faire du `Rcpp` plutôt qu'écrire une boucle `R` qu'on accélèrera par la suite. Un des objectifs de ce cours est de faire connaître les outils les plus adéquats pour des problèmes génériques. Plutôt qu'essayer de paralléliser sur 16 coeurs, il est parfois préférable de bien en utiliser un seul. 
+
+Quand on se préoccupe d'efficacité ou de gestion de mémoire, le principal risque est la dette technique: un code pas très bon pour lequel on reporte le moment de l'améliorer. Il s'agit, par exemple, d'un code qui utilise des boucles au lieu d'une opération vectorisée. Bien réfléchir à la structure du programme, à son découpage en parties homogènes, au format de données et aux packages mobilisables, est fondamental.
+
+Alors
+
+In 1965, Gordon Moore co-founder of Intel, observed that the number of transistors in a dense integrated circuit doubles approximately every two years. This observation is known as Moore’s law. A scatter plot (figure 7.3) of processors over the last thirty years shows that that this law seems to hold.
+
+In an age of Big Data and stagnating computer clock speeds, computational bottlenecks are more likely than ever before to hamper your work.
+
+
 
 # Outils que l'on va utiliser
 
