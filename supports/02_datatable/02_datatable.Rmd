@@ -1,0 +1,27 @@
+---
+title: "02_datatable"
+author: "Lino Galiana"
+date: "20 juin 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+A mettre dans `data.table`:
+
+beaucoup mieux d'updater les lignes par référence, de cette manière
+
+
+```{r, eval = FALSE}
+df1 <- data.table::copy(df)
+df2 <- data.table::copy(df)
+df3 <- data.table::copy(df)
+ggplot2::autoplot(microbenchmark::microbenchmark(
+     df1[!is.finite(get('wealth2009')), 'wealth2009' := 0][],
+     df2[,'wealth2009' := lest::if_else(!is.finite(get('wealth2009')),0,get('wealth2009'))][],
+     df3[,'wealth2009' := hutils::if_else(!is.finite(get('wealth2009')),0,get('wealth2009'))][],
+     times = 20
+ ))
+```
