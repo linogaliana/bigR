@@ -14,6 +14,8 @@ knitr::opts_chunk$set(echo = TRUE)
 >
 > Donald Knuth
 
+# Introduction
+
 L'objectif du cours est d'offrir une introduction aux possibilités qu'offre `R` pour faire des calculs lourds et lire de grosses bases de données. Les deux principales ressources disponibles sur le sujet sont les ouvrages *Efficient R Programming* [@gillespie2016efficient] et *Advanced R* [@wickham2014advanced]^[Dans ce cours, on adoptera la vision de l'efficience au sens d'efficience algorithmique, i.e. la vitesseà laquelle un programme s'exécute et les ressources nécessaires pour l'accomplissement de celui-ci. Nous parlerons peu de la notion d'efficacité de programmation: quantité de travail utile qu'un programmeur peut réaliser par unité de temps. A cet égard, des astuces et règles utiles sont présentées dans la Formation *travail collaboratif sous R* et dans le livre de @gillespie2016efficient].
 
 Avant de chercher à optimiser, le premier réflexe à adopter est de bien structurer le problème que l'on vise à résoudre et sélectionner le format de données et les *packages* les plus adéquats. `R` étant un langage très malléable, il existe généralement plusieurs manières de résoudre un problème: avoir un code efficace nécessite en premier lieu de choisir le meilleur outil disponible en `R`. Par exemple, si on doit passer par une boucle, il vaut mieux choisir rapidement de faire du `Rcpp` plutôt qu'écrire une boucle `R` qu'on accélèrera par la suite. Un des objectifs de ce cours est de faire connaître les outils les plus adéquats pour des problèmes génériques. Plutôt qu'essayer de paralléliser sur 16 coeurs, il est parfois préférable de bien en utiliser un seul. 
@@ -22,10 +24,12 @@ Quand on se préoccupe d'efficacité ou de gestion de mémoire, le principal ris
 
 Alors que le volume de données disponibles et pouvant être combinées est croissant, le ralentissement des progrès technologiques dans l'industrie des microprocesseurs (ralentissement de la loi de Moore^[Selon cette loi, le nombre de transistors composant un micro-processeur double tous les 18 mois à coût constant. Cela implique une capacité de calcul croissant à une grande vitesse. Cette observation empirique a été globalement respectée jusqu'en 2016, date depuis laquelle les progrès ont marqué le pas.]) justifie l'utilisation croissante de capacités de calculs parallèles. L'exploitation des systèmes multi-coeurs, qui sont maintenant communs, permet de limiter l'effet limitant du ralentissement de la loi de Moore sur les capacités de traitement. 
 
+# Plan du cours
+
+La première étape nécessaire pour être en mesure d'être efficace en `R` et de comprendre le fonctionnement du langage. Comprendre la manière dont `R` fonctionne permet de comprendre l'intérêt de la vectorisation ainsi que la manière dont la mémoire fonctionne en `R`. Ce détour par le lange de base permettra de mieux comprendre les raisons pour lesquelles `R` est un langage plus lent qu'un langage compilé et limité lorsqu'il est question de données volumineuses.
 
 
-
-# Outils que l'on va utiliser
+# Outils utiles pour mesurer l'exécution de fonctions
 
 Nous allons utiliser deux types d'approches pour minuter la vitesse d'exécution d'un programme:
 
