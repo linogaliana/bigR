@@ -8,5 +8,8 @@ Description: What the package does (one paragraph).
 License: CC BY-NC-SA 4.0
 Encoding: UTF-8
 Imports:
+    data.table,
+    import,
+    magrittr,
     microbenchmark,
     rmarkdown
