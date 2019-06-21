@@ -84,8 +84,93 @@ Cela nous permet de voir que l'approche `data.table` est plus rapide (l'ordre de
 
 ## Profiling
 
-Once you’ve identified slower code, you’ll likely want to figure out which parts of the code are causing bottlenecks. 
+Le *profiling* consiste à contrôler le temps d'exécution et l'usage mémoire d'une série de commandes. C'est une approche particulièrement bien adaptée à des codes modulaires (découpés sous formes de *chunks*) puisqu'on peut vraiment contrôler les parties de code les plus gourmandes en temps ou en mémoire. 
 
+
+```{r, eval = FALSE}
+profvis::profvis(expr = {
+  
+  # Stage 1: load packages
+  # library("rnoaa") # not necessary as data pre-saved
+  library("magrittr")
+  
+  # Stage 2: load and process data
+  df <- data.frame(x = rnorm(10e5),
+                    y = sample(1:5,size = 10e5, replace = TRUE))
+  
+  df2 <- df %>% dplyr::group_by(y) %>%
+    dplyr::summarise(x2 = mean(x)) %>%
+    dplyr::mutate(x2 = x2/mean(x2))
+  
+  df <- df %>% dplyr::left_join(df2)
+
+  # Imaginons on fait une moyenne par groupe avec lapply
+  # (nb: pas du tout la methode la plus efficace)
+  # lapply(unique(df$y))
+
+  # Stage 3: visualise output
+  p <- ggplot2::ggplot(df,
+                  ggplot2::aes(x = factor(y), y = x)
+                  ) +
+    ggplot2::geom_boxplot(aes(colour = factor(y))) +
+    ggplot2::theme_bw()
+  
+  print(p)
+  
+})
+
+
+```
+
+Avec cet exemple, on voit que la majorité du temps est passée dans la représentation graphique, étape la plus longue et la plus exigente en mémoire. 
+
+
+## Exercice
+
+```{r}
+x = 1:100 # initiate vector to cumulatively sum
+
+# Method 1: with a for loop (10 lines)
+cs_for = function(x){
+  for(i in x){
+    if(i == 1){
+      xc = x[i]
+    } else {
+      xc = c(xc, sum(x[1:i]))
+    }
+  }
+  xc
+}
+
+# Method 2: with apply (3 lines)
+cs_apply = function(x){
+  sapply(x, function(x) sum(1:x))
+}
+
+# Method 3: cumsum (1 line, not shown)
+print(
+  microbenchmark::microbenchmark(cs_for(x), cs_apply(x), cumsum(x))
+)
+
+```
+
+# Comprendre les ordinateurs pour comprendre `R`
+
+## Benchmarkme
+
+```{r, eval = FALSE}
+res = benchmarkme::benchmark_std() 
+```
+
+and compare the results to other users
+
+```{r, eval = FALSE}
+plot(res)
+```
+
+![](./pics/benchmarkme1.png)
+![](./pics/benchmarkme2.png)
+![](./pics/benchmarkme3.png)
 
 # Appels de fonctions
 
