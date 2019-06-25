@@ -38,6 +38,8 @@ Nous allons utiliser deux types d'approches pour minuter la vitesse d'exécution
 
 La première approche est généralement suivie lorsqu'on veut optimiser une opération pour laquelle plusieurs méthodes existent. La seconde approche permet de cibler les étapes d'un programme à cibler pour accélérer les calculs ou réduire l'utilisation de la mémoire.
 
+Sur Linux, la commande `htop` permet de voir, en temps réel, l'utilisation des différents coeurs d'un ordinateur. Sur Windows, le gestionnaire des tâches permet de contrôle la CPU et la RAM utilisés.
+
 
 ## Microbenchmark
 
@@ -48,7 +50,7 @@ Par exemple, si on désire évaluer la performance des moyennes par groupe avec 
 <!-----
 Exercice: Utiliser le package microbenchmark pour faire une moyenne par groupe du dataframe suivant
 
-1. Avec une solution `R` base:  `aggregate`
+1. Avec une solution `R` base:  àggregate`
 2. Avec une solution `dplyr`: `group_by` puis `summarise`
 3. Avec une solution `data.table`: `dt[,mean(),by = ]`
 ----->
@@ -156,13 +158,163 @@ print(
 
 # Comprendre les ordinateurs pour comprendre `R`
 
-## Benchmarkme
+Un ordinateur est une réalisation concrête d’une machine de Turing, c'est-à-dire une
+machine traitant des informations et capable en principe de prendre comme donnée n’importe quel algorithme et de l’exécuter.
+
+## Principes généraux
+
+Les deux principaux constituants d’un ordinateur sont la mémoire principale et le processeur ou CPU (Central Processing Unit). La mémoire principale permet de stocker de l’information (programmes et données), tandis que le processeur exécute pas à pas les instructions composant les programmes.
+
+
+L'interaction entre les différentes composantes d'un ordinateur suit l’architecture de Von-Neumann:
+
+1. Le processeur (CPU pour Central Processing Unit) est conceptuellement décomposé en:
+    + une unitée de contrôle (UC): séquence les opérations
+    + une unitée de calcul arithmétique et logique (UAL): exécution des opérations de base
+    + un registre
+2. La mémoire: contient à la fois les données et le programme
+exécuté par l’unité de contrôle
+    + Mémoire vive ou volatile (RAM pour random access memory): contient programmes et données en cours de traitement
+    + Mémoire permanente (ROM pour read only memory): stocke
+programmes et données de base de la machine
+3. Dispositifs d'entrée-sortie (input/output): périphériques qui permettent de communiquer avec le monde extérieur
+4. Canaux de communication (les bus) entre la mémoire, le processeur et les périphériques
+
+
+![](./pics/architecture_von_neumann.png)
+
+La carte mère est le support physique permettant la coordination de l’ensemble des éléments intervenant dans le fonctionnement d’un ordinateur.
+
+Si l’architecture de Von-Neumann se caractérise par sa grande souplesse, elle présente en revanche trois gros inconvénients :
+
+1. Une exécution séquentielle : L’architecture de Von Neumann impose une exécution séquentielle des instructions. Avec ce modèle, il n’est donc pas possible d’effectuer différents travaux en parallèle.
+2. Un goulet d’étranglement : Alors que le microprocesseur peut exécuter des instructions très rapidement, celles-ci sont de toute façon ralenties par la vitesse de transfert des informations dans les bus de communication.
+3. Faible robustesse : Le fait que les données et les programmes soient mélangés engendre une fragilité du modéle de Von-Neumann : si une donnée est enregistrée à l’emplacement d’un programme, le comportement de l’ordinateur peut devenir complètement incohérent.
+
+Le système d'exploitation donne l'illusion que de nombreux processus peuvent être exécutés en même temps. Cela provient de la conjonction de deux effets : d’une part, les instructions exécutées par l’ordinateur sont extrêmement rapides (de l’ordre de quelques dizaines de millisecondes) et d’autre part, le système d’exploitation utilise les temps d’attente dans l’exécution d’une tâche pour orienter les ressources de l’ordinateur (micro-processeur + RAM...) vers l’exécution d’une autre tâche. Le fait que la plupart des ordinateurs soient maintenant dotés de plusieurs processeurs permet, si les applications sont adaptées, d’exécuter réellement plusieurs tâches simultanément. Malgré tout, le nombre d’instructions effectuées simultanément reste habituellement très inférieur au nombre d’applications en fonctionnement simultané.
+
+### Langage interprété vs compilé
+
+`R` est un langage interprété, par opposition aux langages compilés (`C++` par exemple). Par rapport à l’interpréteur, le compilateur présente l’inconvénient de retarder l’exécution d’un programme mais une fois compilé, le fichier exécutable obtenu est particulièrement rapide (moins de surcouche vers le langage machine).
+
+Certains packages (par exemple `compiler`) proposent d'accélérer les traitements en transformant des exécutions interprétées (du code `R` standard) en instructions compilées (`bytecode`). C'est une méthode, assez simple puisque c'est le package qui gère cette traduction, pour accélérer certains programmes. 
+
+
+## Le processeur (CPU)
+
+
+Le processeur (ou micro-processeur) est considéré comme le coeur de l’ordinateur. C’est lui qui attribut des tâches simples aux périphériques et à la RAM tandis qu’il exécute les tâches les plus compliquées. Il est responsable de l’exécution d’un programme. Le processeur est un circuit éléctronique complexe (circuit intégré) qui exécute chaque instruction très rapidement, en quelques cycles d’horloges. Toute l’activité de l’ordinateur est cadencée par une horloge unique, de façon à ce que tous les circuits électroniques
+travaillent tous ensemble de façon synchronisée. La fréquence de cette horloge s’exprime en MHz (millions de cyles par seconde) ou GHz (milliards de cycles par secondes). Par exemple, le processeur *Intel Core i5-6300U* qui équipe les postes nomades INSEE possède une horloge cadencée à 2,40 GHz.
+
+Un processeur est défini, entre autres, par :
+
+1. La largeur de ses registres internes de manipulation de données. Les registres sont des mémoires de petite taille (quelques octets), suffisamment rapides pour que l’UAL puisse manipuler leur contenu à chaque cycle de l’horloge. Les deux largeurs les plus communes sont 32 et 64 bits.
+2. La cadence de son horloge exprimée en MHz ou GHz ;
+3. Le nombre de noyaux de calcul (core). Le chapitre sur la parallélisation reviendra sur ce point.
+
+Le processeur est principalement divisé en deux parties
+
+1. L’unité de contrôle: responsable de la lecture en mémoire principale et du décodage des instructions ;
+2. L’unité de calcul arithmétique et logique (UAL): exécute les instructions qui manipulent les données. C’est elle qui effectue les opérations algébriques (somme, différence, produit, rapport) et logiques (disjonction, conjonction, négation) usuelles
+
+Ces deux unités communiquent avec la mémoire principale, la première pour lire les instructions, la seconde pour recevoir/transmettre des données binaires, mais ils communiquent également avec les différents périphériques (clavier, souris, écran, etc.).
+
+
+<!--------
+Les instructions que doit suivre l’unité de contrôle sont elles aussi inscrites dans la RAM. Pour les exécuter, l’unité de contrôle utilise un registre particulier appelé PC (Program Counter) et exécute en boucle la séquence d’actions suivantes :
+
+  * Lire instruction : Aller lire le mot stocké à l’adresse mémoire inscrite dans le registre PC et le stocker dans un registre spécial appelé IR (Registre d’Instruction). Les instructions sont des mots mémoires codés en
+binaire que l’on appelle le langage machine.
+  * Incrémenter PC : Ajouter 1 au mot stocké dans le registre PC et enregistrer le résultat dans ce même registre.
+  * Décoder instruction : Décoder l’instruction contenue dans IR, c’est à dire, reconnaître s’il s’agit d’une
+opération arithmétique et logique, d’un accès à la mémoire vive ou d’un branchement (voir plus loin).
+  * Exécuter instruction : Exécuter l’instuction décodée.
+  
+Le programme est représenté par une série d’instructions qui réalisent
+des opérations en liaison avec la mémoire vive de l’ordinateur. Il y a
+quatre étapes lors du traitement des instructions (architecture de Von Neumann):
+1 FETCH : Recherche de l’instruction ;
+2 DECODE : Décodage de l’instruction ;
+3 EXECUTE : Exécution des opérations ;
+4 WRITEBACK : Écriture du résultats.
+  
+------>
+
+## La mémoire vive ou RAM (random access memory)
+
+La mémoire est divisée en bytes qui sont des emplacements (des cases mémoires contiguës) de taille fixe utilisés pour stocker instructions et données. En principe, la taille d’un emplacement mémoire pourrait être quelconque ; en fait, la plupart des ordinateurs en service aujourd’hui utilisent des emplacements mémoire d’un octet (soit 8 bits)^[Aujourd'hui, les termes bytes et octets sont utilisés de manière relativement indistincte même si, conceptuellement, il s'agit de notions différentes. Le byte est le nombre de bits nécessaire pour coder un caractère. Il s'agit ainsi de la plus petite unité logique adressable par un programme sur un ordinateur. Les bytes de 8 bits se sont généralisés dans les ordinateurs modernes même si, conceptuellement, les bytes pouvaient être de longueur différente. Par le passé, les caractères ASCII dominaient l'informatique. Il s'agissait d'un ensemble de 128 caractères qui ne nécessitaient que 7 bits ($2^7=128$) mais en utilisaient 8 pour optimiser la performance. La définition d'un octet est d'être une unité composée de 8 bits. C'est la généralisation des bytes à 8 bits qui explique la correspondance entre ces deux termes. En informatique, si l'on veut explicitement désigner une quantité de huit bits, on utilise le mot octet ; tandis que si l'on veut exprimer l'unité d'adressage indépendamment du nombre de bits, on utilise le mot byte. ]. Les séquences de bytes sont elles-mêmes regroupées en mots mémoire dont la taille est déterminée par celle des registres de l'ordinateur (32 ou 64 bits)^[Les processeurs 32 bits ne peuvent normalement pas adresser plus de 4 Gio ($2^{32}$ octets) de mémoire centrale, tandis que les processeurs 64 bits peuvent en adresser 16 Eio ($2^{64}$ octets). C'est pourquoi dès qu'il y a plus de 4 Gio de RAM sur une machine, la mémoire au-delà de ce seuil ne sera directement adressable qu'en mode 64 bits].
+
+<!---Il existe au moins 3 types de mémoire vive : SD, SSD et DDR-SDRAM (d’accès plus rapide).---->
+
+
+Bit representation | Caractère
+-------------------|-----------
+01000001 | A
+01000010 | B
+01000011 | C
+
+
+
+La RAM possède les caractéristiques suivantes :
+
+1. un mot dans la mémoire peut aussi bien représenter une instruction dans un programme, qu’un entier ou une couleur selon l’interprétation que lui donne l’utilisateur.
+2. elle est inerte dans le sens où elle sert juste de support de stockage de l’information.
+3. tout mot mémoire possède une adresse (codé sous la forme d’un entier) lui permettant d’être lu rapidement par le microprocesseur.
+
+Lorsque la mémoire vive arrive à saturation en raison d’une utilisation instantanée intensive de l’ordinateur, une partie du disque dur peut-être utilisée par le microprocesseur : on appelle cela le *swap*. Dans ce cas, le temps d’exécution des instructions est beaucoup plus lent (de l’ordre de 1000 fois).
+
+<!----------
+Seul le processeur peut modifier l’état de la mémoire. Chaque emplacement mémoire conserve les informations que le processeur y écrit jusqu’à coupure de l’alimentation électrique, où tout le contenu est perdu (contrairement au contenu des mémoires externes comme
+les disquettes et disques durs). On parle de mémoire vive. Les seules
+opérations possibles sur la mémoire sont :
+1 écriture d’un emplacement : le processeur donne une valeur et
+une adresse, et la mémoire range la valeur à l’emplacement
+indiqué par l’adresse ;
+2 lecture d’un emplacement : le processeur demande à la mémoire
+la valeur contenue à l’emplacement dont il indique l’adresse. Le
+contenu de l’emplacement auquel le processeur accède en lecture
+demeure inchangé.
+
+Caractéristiques d’une mémoire
+1 La capacité : nombre total de bits que contient la mémoire. Elle
+s’exprime aussi souvent en octet ;
+2 Le format des données : nombre de bits que l’on peut mémoriser
+par case mémoire. On parle de la largeur du mot mémorisable ;
+3 Le temps d’accès : temps qui s’écoule entre l’instant où a été
+lancée une opération de lecture/écriture en mémoire et l’instant
+où la première information est disponible sur le bus de données ;
+4 Le temps de cycle : il représente l’intervalle minimum qui doit
+séparer deux demandes successives de lecture ou d’écriture ;
+5 Le débit : nombre maximum d’informations lues ou écrites par
+seconde ;
+6 La volatilité : elle caractérise la permanence des informations
+dans la mémoire. L’information stockée est volatile si elle risque
+d’être altérée par un défaut d’alimentation électrique et non
+volatile dans le cas contraire.
+------------>
+
+
+<!-------------
+Les instructions et les données transmises au processeur sont
+exprimées en mots binaires (code machine). Elles sont stockées dans
+la mémoire. Le séquenceur ordonne la lecture du contenu de la
+mémoire et la constitution des mots présentées à l’UAL qui les
+interprète. L’ensemble des instructions et des données constitue un
+programme. Le langage le plus proche du code machine tout en
+restant lisible par des humains est le langage d’assemblage, aussi
+appelé langage assembleur
+------------------>
+
+
+## Comparer la performance de R par rapport à d'autres utilisateurs
+
+Le package `benchmarkme` est conçu pour faire tourner quelques calculs standardisés afin de comparer la performance de `R` à d'autres utilisateurs qui ont accepté de partager la performance de leur ordinateur. 
 
 ```{r, eval = FALSE}
 res = benchmarkme::benchmark_std() 
 ```
 
-and compare the results to other users
+Pour se comparer aux autres utilisateurs: 
 
 ```{r, eval = FALSE}
 plot(res)
@@ -172,41 +324,71 @@ plot(res)
 ![](./pics/benchmarkme2.png)
 ![](./pics/benchmarkme3.png)
 
+Le poste utilisé pour les tests a des performances médianes: sans être catastrophique, il n'est pas non plus exceptionnel.
+
 # Appels de fonctions
 
-Ultimately calling an `R` function always ends up calling some underlying `C`/`Fortran` code. For example the base `R` function `runif()` only contains a single line that consists of a call to `C_runif()`
+> To understand computations in R, two slogans are helpful:
+>
+>  * Everything that exists is an object.
+>  * Everything that happens is a function call.
+>
+> *John Chambers*
 
-```{r}
+Appeler une function `R` revient en fait à appeler, de manière plus ou moins directe, un code `C` ou `Fortran` code. Les fonctions de base sont généralement des appels implicites à une fonction `C` sous-jacente. Par exemple, la fonction `runif()` contient une unique ligne qui est un appel à la fonction  `C_runif()`
+
+```{r runif C call}
 runif
 ```
 
-A golden rule in `R` programming is to access the underlying `C`/`Fortran` routines as quickly as possible; the fewer functions calls required to achieve this, the better.
+Les fonctions développées en `C++` grâce au package `Rcpp` fonctionnent de la même manière. Par exemple, la fonction que j'ai développée 
 
-For example, suppose `x` is a standard vector of length `n`. Then
+```{r}
+capitulation::simulate_wealth_structural
+```
+fonctionne comme un *wrapper* d'une fonction sous-jacente en `C++` qui est, elle-même, stockée dans un fichier compilé `.dll`
+
+```{r}
+capitulation:::`_capitulation_simulate_wealth_structural`
+```
+
+Pour obtenir de bonnes performances en `R`, il est important d'accéder aux routines sous-jacentes `C` ou `Fortran` le plus rapidement possible. Appeler des fonctions ayant un coût en termes de temps, il est important de minimiser, autant que possible, le nombre d'appels pour accéder aux fonctions `C` ou `Fortran`.
+
+Ce principe explique la lenteur des boucles en `R`. Par exemple, en supposant que `x` soit un vecteur standard, 
 
 ```{r, eval = FALSE}
 x = x + 1
 ```
 
-involves a single function call to the `+` function. Whereas the `for` loop
+ne nécessite qu'un appel à la fonction `+`. 
 
-```{r, eval = FALSE}
+La boucle `for` équivalente
+
+```{r for loop, eval = FALSE}
 for(i in seq_len(n)) 
-  x[i] = x[i] + 1 
+  x[i] <- x[i] + 1 
 ```
 
-has
+nécessite
 
-* *n* function calls to `+`
-* *n* function calls to the `[` function;
-* *n* function calls to the `[<-` function (used in the assignment operation);
-* Two other function calls: one to `for` and another to `seq_len()`.
+* *n* appels à la fonction `+`
+* *n* appels à la fonction `[` ;
+* *n* appels à la fonction `[<-` (assignation);
+* 2 appels supplémentaires: un à la fonction `for` et l'autre `seq_len()`.
 
-It isn’t that the for loop is slow, rather it is because we have many more function calls. Each individual function call is quick, but the total combination is slow.
+En soi, la boucle *for* n'est pas longue mais les appels de fonctions sont bien trop nombreux pour la rendre compétitive. Comme nous le montrerons par la suite, si la vectorisation n'est pas possible, il est préférable d'utiliser la fonction `lapply` que la fonction `for`.
 
-Use the `microbenchmark` package to compare the vectorised construct `x = x + 1`, to the for loop version. Try varying the size of the input vector.
 
-```{r}
+Loops are slower in R than in C++ because R is an interpreted language (not compiled), even if now there is just-in-time (JIT) compilation in R (>= 3.4) that makes R loops faster (yet, still not as fast). Then, R loops are not that bad if you don’t use too many iterations (let’s say not more than 100,000 iterations).
+
+
+
+#### Exercise
+
+Utilisez le package `microbenchmark` pour comparer la solution vectorielle à la solution boucle. Faites la comparaison en variant les tailles de vecteur
+
+
+```{r microbenchmark vectorisation}
 plus_one <- function(n){
   x <- runif(n)
   x <- x+1
@@ -236,6 +418,9 @@ results_plus_one <- microbenchmark::microbenchmark(
 ggplot2::autoplot(results_plus_one)
 
 ```
+
+
+
 
 
 ### Memory allocation
@@ -283,6 +468,12 @@ ggplot2::autoplot(
 ```
 
 The table below shows the timing in seconds on my machine for these three methods for 100 run of those methods for a 1000 observations. The relationships for varying *n* are all roughly linear on a log-log scale, but the timings between methods are drastically different. Notice that the timings are no longer trivial. When $n=10^7$, method 1 takes around an hour whilst method 2 takes 2 seconds and method 3 is almost instantaneous. Remember the golden rule; access the underlying `C`/`Fortran` code as quickly as possible.
+
+
+You have at least two solutions to this problem. The first solution is to pre-allocate the whole result once (if you know its size in advance) and just fill it
+
+Another solution that can be really useful if you don’t know the size of the result is to store the results in a list. A list, as opposed to a vector or a matrix, stores its elements in different places in memory (the elements don’t have to be contiguously stored in memory) so that you can add one element to the list without copying the rest of the list
+
 
 
 ### Vectorised code
