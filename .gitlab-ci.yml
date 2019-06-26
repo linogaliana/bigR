@@ -1,9 +1,8 @@
-before_install:
-  - pip install numpy
 article:
   stage: deploy
   image: rocker/verse:3.5.1
   script:
+    - pip install numpy
     - Rscript -e "devtools::install_deps()"
     - Rscript ./build.R
   artifacts:
