@@ -1,3 +1,5 @@
+before_install:
+  - pip install numpy
 article:
   stage: deploy
   image: rocker/verse:3.5.1
