@@ -1,5 +1,5 @@
 ---
-title: "Principes: pourquoi et comment optimiser en R?"
+title: "Fondamentaux de l'optimisation en R"
 author: "Lino Galiana"
 date: "14 juin 2019"
 output: html_document
@@ -8,6 +8,11 @@ bibliography: ../bibliography.bib
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::knit_engines$set(python = reticulate::eng_python)
+library(reticulate)
+reticulate::py_available(TRUE)
+
+#knitr::opts_chunk$set(engine.path = list(python = 'C:/Users/W3CRK9/AppData/Local/Continuum/anaconda3/envs/r-reticulate'))
 ```
 
 >  Premature optimization is the root of all evil (or at least most of it) in programming.
@@ -376,11 +381,11 @@ nécessite
 * *n* appels à la fonction `[<-` (assignation);
 * 2 appels supplémentaires: un à la fonction `for` et l'autre `seq_len()`.
 
-En soi, la boucle *for* n'est pas longue mais les appels de fonctions sont bien trop nombreux pour la rendre compétitive. Comme nous le montrerons par la suite, si la vectorisation n'est pas possible, il est préférable d'utiliser la fonction `lapply` que la fonction `for`.
+En soi, la boucle *for* n'est pas longue mais les appels de fonctions sont bien trop nombreux pour la rendre compétitive. C'est parce que les appels de fonctions sous `R` impliquent des sur-couches par rapport à un langage compilé comme `C` ou `C++` qui accède plus directement au langage machine. Les méthodes de compilation à la volée (*just-in-time compilation*) telles qu'implémentées par le package `compiler` permettent d'accélérer les boucles mais il reste toujours préférable d'adopter une approche plus adaptée à R ou, si c'est impossible, de privilégier une boucle `C++` [@eddelbuettel2011rcpp].
 
 
-Loops are slower in R than in C++ because R is an interpreted language (not compiled), even if now there is just-in-time (JIT) compilation in R (>= 3.4) that makes R loops faster (yet, still not as fast). Then, R loops are not that bad if you don’t use too many iterations (let’s say not more than 100,000 iterations).
 
+<!---- Comme nous le montrerons par la suite, si la vectorisation n'est pas possible, il est préférable d'utiliser la fonction `lapply` que la fonction `for`.---->
 
 
 #### Exercise
@@ -419,8 +424,105 @@ ggplot2::autoplot(results_plus_one)
 
 ```
 
+### Boucles: comparaison avec Python et C++
+
+```{python, eval = TRUE}
+#conda_create("r-reticulate")
+#reticulate::conda_install("r-reticulate", "scipy")
+
+import numpy as np
+import time
+import statistics
+# x = np.random.uniform(0,1,n)
+
+def test(n = 1000): 
+  start = time.time()
+  x = np.random.uniform(0,1,n)
+  for i in range(n):
+    x[i] = x[i] + 1
+  end = time.time()
+  return(end - start)
+
+exec_time_python = [test(100000) for k in range(100)]
+# statistics.median(exec_time_python*1000)
+
+# if __name__ == '__main__':
+#     import timeit
+#     import numpy as np
+#     print(timeit.timeit("test()", setup="from __main__ import test"),number = 50)
+
+def test2(n = 1000):
+  start = time.time()
+  x = np.random.uniform(0,1,n) + 1
+  end = time.time()
+  return(end - start)
+
+exec_time_python2 = [test2(100000) for k in range(100)]
+
+```
+
+```{r}
+test <- function(n = 1000){
+  start <- Sys.time()
+  x <- runif(n)
+  for (i in seq_len(n)){x[i] <- x[i] + 1}
+  end = Sys.time()
+  return(end - start)
+}
+
+test2 <- function(n = 1000){
+  start <- Sys.time()
+  x <- runif(n) + 1
+  end = Sys.time()
+  return(end - start)
+}
+
+exec_time_R <- replicate(100, test(100000))
+# median(exec_time_R*1000)
+exec_time_R2 <- replicate(100, test2(100000))
+```
+
+```{Rcpp, eval = FALSE}
+#include <Rcpp.h>
+using namespace Rcpp;
+
+// [[Rcpp::export]]
+int test_cpp(int n) {
+  NumericVector x = R::runif(n) ;
+  for (int i=0; i < n; ++i) {
+    x[i] += 1;
+  }
+  return n;
+  //return x;
+}
+```
+
+```{r, eval = FALSE}
+test_cpp_R <- function(n = 1000){
+  start <- Sys.time()
+  x <- test_cpp(n)
+  end = Sys.time()
+  return(end - start)
+}
+exec_time_cpp <- replicate(100, test_cpp_R(100000))
+
+```
 
 
+```{r}
+exec_times <- do.call(rbind,list(
+  data.frame(t = py$exec_time_python, langage = "python [loop]"),
+  data.frame(t = exec_time_R, langage = "R [loop]"),
+  data.frame(t = py$exec_time_python2, langage = "python"),
+  data.frame(t = exec_time_R2, langage = "R")#,
+#  data.frame(t = exec_time_cpp, langage = "Rcpp")
+))
+ggplot2::ggplot(data = exec_times) + ggplot2::geom_violin(ggplot2::aes(x = langage, y = log(t)))
+```
+
+
+
+# Mémoire
 
 
 ### Memory allocation
