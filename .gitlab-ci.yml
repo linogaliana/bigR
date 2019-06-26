@@ -2,7 +2,8 @@ article:
   stage: deploy
   image: rocker/verse:3.5.1
   script:
-    - pip install numpy
+    - apt-get install -y libpython-dev
+    - apt-get install -y libpython3-dev
     - Rscript -e "devtools::install_deps()"
     - Rscript ./build.R
   artifacts:
