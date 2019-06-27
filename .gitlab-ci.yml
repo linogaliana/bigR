@@ -1,4 +1,4 @@
-image: rocker/verse:3.5.1
+image: rockerextra/python
 
 before_script:
     - apt-get install -y libpython-dev
