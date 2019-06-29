@@ -1,4 +1,4 @@
-image: rockerextra/python
+image: andrie/reticulate
 
 article:
   stage: deploy
