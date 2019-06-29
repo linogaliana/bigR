@@ -5,7 +5,6 @@ article:
   script:
     - echo $PYTHON_VERSION
     - ls "/usr/local/python-${PYTHON_VERSION}/bin/python3"
-    - Rscript -e print(Sys.getenv("PYTHON_VERSION"))
     - Rscript -e "devtools::install_deps()"
     - Rscript ./build.R
   artifacts:

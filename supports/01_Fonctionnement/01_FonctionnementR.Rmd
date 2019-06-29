@@ -9,10 +9,19 @@ bibliography: ../bibliography.bib
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::knit_engines$set(python = reticulate::eng_python)
+
 library(reticulate)
 reticulate::py_available(TRUE)
 
-#knitr::opts_chunk$set(engine.path = list(python = 'C:/Users/W3CRK9/AppData/Local/Continuum/anaconda3/envs/r-reticulate'))
+if (Sys.getenv("LOCAL")==""){
+  python_path <- list.dirs("/usr/local/", full.names = FALSE)
+  python_path <- python_path[startsWith(python_path,"python")]
+  reticulate::use_python(paste0("/usr/local/", python_path, "/bin/python3"))
+  # knitr::opts_chunk$set(engine.path = list(python = 'C:/Users/W3CRK9/AppData/Local/Continuum/anaconda3/envs/r-reticulate'))
+}
+  #conda_create("r-reticulate")
+#reticulate::conda_install("r-reticulate", "scipy")
+
 ```
 
 >  Premature optimization is the root of all evil (or at least most of it) in programming.
