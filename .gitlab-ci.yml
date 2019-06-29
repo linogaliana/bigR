@@ -4,7 +4,7 @@ article:
   stage: deploy
   script:
     - echo $PYTHON_VERSION
-    - ls "/usr/local/python-${PYTHON_VERSION}"
+    - ls "/usr/local/python-${PYTHON_VERSION}/bin"
     - Rscript -e "devtools::install_deps()"
     - Rscript ./build.R
   artifacts:
