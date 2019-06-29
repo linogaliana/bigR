@@ -23,8 +23,11 @@ reticulate::py_available(TRUE)
 if (Sys.getenv("LOCAL")==""){
   #use_condaenv("/opt/conda/bin")
   # print(reticulate::py_config())
-  # conda_create("r-reticulate")
-  reticulate::conda_install("py35", "scipy")
+  conda_create("r-reticulate")
+# install SciPy
+conda_install("r-reticulate", "scipy")
+
+  # reticulate::conda_install("py35", "scipy")
 }
 
 ```
