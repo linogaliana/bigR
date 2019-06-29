@@ -3,6 +3,8 @@ image: rockerextra/python
 article:
   stage: deploy
   script:
+    - echo ${PYTONPATH}
+    - echo $PYTHON_VERSION
     - Rscript -e "devtools::install_deps()"
     - Rscript ./build.R
   artifacts:
