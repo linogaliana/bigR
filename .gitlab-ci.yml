@@ -9,11 +9,11 @@ article:
     - apt-get update --fix-missing && apt-get install -y ca-certificates libglib2.0-0 libxext6 libsm6 libxrender1 libxml2-dev
     - apt-get install -y python3-pip python3-dev && pip3 install virtualenv
     - echo 'export PATH=/opt/conda/bin:$PATH' > /etc/profile.d/conda.sh
-    - ls '/opt/conda/bin'
-    - export PATH=/opt/conda/bin:$PATH
     - wget --quiet https://repo.continuum.io/archive/Anaconda2-4.3.1-Linux-x86_64.sh -O ~/anaconda.sh
     - /bin/bash ~/anaconda.sh -b -p /opt/conda rm ~/anaconda.sh
     - conda env list
+    - ls '/opt/conda'
+    - export PATH=/opt/conda/bin:$PATH
     - python --version
 #    - Rscript -e "devtools::install_deps()"
 #    - Rscript ./build.R
