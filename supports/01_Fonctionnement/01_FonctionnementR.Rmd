@@ -21,16 +21,16 @@ reticulate::py_available(TRUE)
 #   reticulate::use_python(paste0("/usr/local/", python_path, "/bin/python3"))
 #   # knitr::opts_chunk$set(engine.path = list(python = 'C:/Users/W3CRK9/AppData/Local/Continuum/anaconda3/envs/r-reticulate'))
 # }
-print(reticulate::py_config)
 ```
 
 ```{r}
 if (Sys.getenv("LOCAL")==""){
+  reticulate::use_condaenv("/opt/conda/bin", required = TRUE)
   #use_condaenv("/opt/conda/bin")
   # print(reticulate::py_config())
-  conda_create("r-reticulate")
+  # conda_create("r-reticulate")
 # install SciPy
-conda_install("r-reticulate", "scipy")
+  conda_install("r-reticulate", "scipy")
 
   # reticulate::conda_install("py35", "scipy")
 }
