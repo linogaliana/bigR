@@ -1,7 +1,7 @@
 image: rocker/verse:3.5.1
 
-# before_script:
-#   - export PATH="/opt/conda/bin:$PATH"
+before_script:
+   - export PATH="/opt/conda/bin:$PATH"
 
 article:
   stage: deploy
@@ -11,11 +11,10 @@ article:
     - echo 'export PATH=/opt/conda/bin:$PATH' > /etc/profile.d/conda.sh
     - wget --quiet https://repo.continuum.io/archive/Anaconda2-4.3.1-Linux-x86_64.sh -O ~/anaconda.sh
     - /bin/bash ~/anaconda.sh -b -p /opt/conda rm ~/anaconda.sh
-    - conda env list
-#    - export PATH=/opt/conda/bin:$PATH
     - python --version
     - echo $PATH
     - conda create --name Reticulate python=3.5
+    - conda env list
     - Rscript -e "devtools::install_deps()"
     - Rscript ./build.R
   artifacts:
