@@ -1,7 +1,7 @@
 image: rocker/verse:3.5.1
 
-before_script:
-  - export PATH="/opt/conda/bin:$PATH"
+# before_script:
+#   - export PATH="/opt/conda/bin:$PATH"
 
 article:
   stage: deploy
@@ -15,6 +15,7 @@ article:
 #    - export PATH=/opt/conda/bin:$PATH
     - python --version
     - echo $PATH
+    - conda create --name Reticulate python=3.5
     - Rscript -e "devtools::install_deps()"
     - Rscript ./build.R
   artifacts:
