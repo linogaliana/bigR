@@ -1,7 +1,7 @@
 #!/usr/bin/Rscript
 
 print(Sys.which("python"))
-Sys.setenv(RETICULATE_PYTHON = "/opt/conda/envs/Reticulate")
+Sys.setenv(RETICULATE_PYTHON = "/opt/conda/envs/Reticulate/bin")
 reticulate::conda_install("Reticulate", "scipy")
 reticulate::conda_install("Reticulate", "statistics")
 
