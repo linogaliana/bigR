@@ -32,7 +32,6 @@ if (Sys.getenv("LOCAL")==""){
 # install SciPy
   # conda_install("r-reticulate", "scipy")
 
-  reticulate::conda_install("Reticulate", "scipy")
 }
 ```
 
