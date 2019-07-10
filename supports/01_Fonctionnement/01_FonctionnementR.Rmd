@@ -23,7 +23,7 @@ reticulate::py_available(TRUE)
 # }
 ```
 
-```{r}
+```{r, eval=FALSE}
 if (Sys.getenv("LOCAL")==""){
   Sys.setenv(RETICULATE_PYTHON = "/opt/conda/envs/Reticulate/bin")
   use_condaenv("Reticulate")
