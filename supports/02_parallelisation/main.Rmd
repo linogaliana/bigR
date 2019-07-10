@@ -1,5 +1,5 @@
 ---
-title: "Fondamentaux de l'optimisation en R"
+title: "Parallélisation"
 author: "Lino Galiana"
 date: "14 juin 2019"
 output: html_document
@@ -10,22 +10,93 @@ bibliography: ../bibliography.bib
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+# Principe
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+On parle de calcul parallèle lorsque des calculs sont effectués de manière simultanée, par opposition à une exécution séquentielle des calculs. **embarassingly parallel*
+Outre l'intérêt évident en termes de CPU, un autre intérêt du parallélisme est qu'il est plus parcimonieux en mémoire: en traitant des blocs moins volumineux, on réduit les besoins de mémoire (liés par exemple à des *copy* multiples)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+Le calcul parallèle est particulièrement adapté dans des situations où on peut traiter des blocs de données indépendamment. Les simulations numériques, le bootstrapping ou encore des statistiques descriptives par groupe sont autant de champs où l'utilisation du calcul parallèle s'avère utile. La stratégie généralement adoptée est celle du `split`-`apply`-`combine` ou `divide and conquer` ****
 
-```{r cars}
-summary(cars)
-```
+Des language très performants, tels que `spark`, reposent sur ce principe de la parallélisation en traintant les données par bloc tout en assurant une communication efficace entre ces blocs. 
 
-## Including Plots
+Paralléliser les opérations ne doit pas être le premier réflexe. Avant de se préoccuper de parallélisation, il convient de s'assurer que:
 
-You can also embed plots, for example:
+* le code est efficace sur un coeur
+* le problème est adapté à la parallélisation. Le parallélisme ne prend sens que dans un cadre où on peut restructurer les données en blocs indépendants. Une somme cumulative sur un vecteur ne sera pas à une situation où la parallélisation apportera un gain (elle peut même ralentir le système). 
+* le *hardware* est adapté à la parallélisation. Comme mettre en place une structure de parallélisation a un coup en termes de temps, il faut que le gain de temps associé à la parallélisation des calculs soit suffisant. De manière générale, il ne faut pas espérer une division du temps de calcul par $n$ dans un ordinateur avec $n$ coeurs. A partir de 4 coeurs, on peut tout de même espérer des gains de temps significatifs. 
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## Parallel computing vs multithreading
+
+Un processeur est dit multithread s'il est capable d'exécuter efficacement plusieurs *threads* (tâches élémentaires) simultanément. Contrairement aux systèmes multiprocesseurs (tels les systèmes multi-cœur), les threads doivent partager les ressources d'un unique coeur : les unités de traitement, le cache processeur et le translation lookaside buffer ; certaines parties sont néanmoins dupliquées : chaque thread dispose de ses propres registres et de son propre pointeur d'instruction. Là où les systèmes multiprocesseurs incluent plusieurs unités de traitement complètes, le multithreading a pour but d'augmenter l'utilisation d'un seul coeur en tirant profit des propriétés des threads et du parallélisme au niveau des instructions. 
+
+<!-------
+La librairie ne permet pas d’accélérer miraculeusement une procédure existante. En revanche, elle nous donne l’opportunité d’exploiter efficacement les ressources machines à condition de reprogrammer la procédure en réorganisant judicieusement les calculs. L’idée maîtresse est de pouvoir décomposer le processus en tâches que l’on peut exécuter en parallèle, charge à nous par la suite d’effectuer la consolidation.
+
+
+Multithreaded processors also exploit the concurrency of multiple tasks, but in a different way and for a different reason. Instead of a system-level technique to spread CPU load, multithreading is processor-level optimization to improve area and energy efficiency. Multithreaded architecture is driven to a large degree by the realization that single-threaded, high-performance processors spend a surprising amount of time doing nothing. When the results of a memory access are required for a program to advance, and that access must reference RAM whose cycle time is tens of times slower than that of the processor, a single-threaded processor can do nothing but stall until the data is returned.
+
+Multithreading can be described thus: If latencies prevent a single task from keeping a processor pipeline busy, a single pipeline should be able to complete more than one concurrent task in less time than it would take to run the tasks serially. This means running more than one task's instruction stream, or thread, at a time, which in turn means that the processor has to have more than one program counter and more than one set of programmable registers. Replicating those resources is far less costly than replicating an entire processor. 
+
+A thread of execution is the smallest sequence of programmed instructions that can be managed independently by an operating system scheduler
+On thing on threads the operating system performs a task known as "scheduling" in which it tries to find the optimal method of distributing workloads across available resources. 
+
+Multithreading and Multicore are different pieces of terminology that apply to different areas of computing.
+---------->
+
+TO DO: FORK vs SOCKET
+
+[vignette parallel]: Fork is a concept2 from POSIX operating systems, and should be available on
+all R platforms except Windows. This creates a new R process by taking a complete copy
+of the master process, including the workspace and state of the random-number stream.
+However, the copy will (in any reasonable OS) share memory pages with the master until
+modied so forking is very fast.
+
+# Parallélisation dans `R` : premiers essais
+
+## Quel package utiliser ?
+
+Il existe plusieurs packages dédiés à la parallélisation des calculs en `R`:
+
+* `parallel`: pré-installé sur `R` depuis la version 2.14. Il s'agit de la fondation pour des packages ultérieurs. Cependant, la fonction `parallel::mclapply` fonctionne sur les systèmes `unix` (Mac et Linux) mais ne parallélise pas les calculs sur `Windows`
+* `snow`: implémentation des fonctions `*apply` dans un cadre parallèle. La fonction `snow::parLapply` permet, par exemple, d'effectuer des traitements sur chaque éléments d'une liste de manière indépendante. 
+* `foreach`: offre une plus grande flexibilité. C'est le package que nous utiliserons. Le package doit être utilisé en conjonction avec un package comme `doParallel` pour mettre en place les *clusters* et les associer aux données devant être traitées. 
+
+
+The foreach package must be used in conjunction
+with a package such as doParallel in order to execute code in parallel. The user must register a
+parallel backend to use, otherwise foreach will execute tasks sequentially, even when the %dopar%
+operator is used
+
+y default, doParallel uses multicore
+functionality on Unix-like systems and snow functionality on Windows. Note that the multicore
+functionality only runs tasks on a single computer, not a cluster of computers. However, you can
+use the snow functionality to execute on a cluster, using Unix-like operating systems, Windows, or
+even a combination. It is pointless to use doParallel and parallel on a machine with only one
+processor with a single core. To get a speed improvement, it must run on a machine with multiple
+processors, multiple cores, or both.
+
+For non-Linux users, we can use parLapply function in parallel package to achieve parallelism. parLapply function supports different platforms including Windows, Linux and Mac with better portability, but its usage is a little complicated than mclapply. Before using parLapply function, we need to create a computing group (cluster) first. Computing group is a software-level concept, which means how many R worker processes we need to create (Note: par*apply package will create several new R processes rather than copies of R master process from mc*apply). Theoretically, the size of the computing group is not affected by the hardware configuration.For example, we can create a group with 1000 R worker processes on any machine. In practice, we usually use the same size of computing group with hardware resources (such as physical cores) so that each worker process of R can be mapped to a physical core.
+
+In the following example, we start with detectCores function to determine the number of computing cores in the machine.It is noteworthy that detectCores() returns the number of Hyper-Threading rather than real physical cores.For example, there are two physical cores on my laptop, and each core can simulate two hyperthreading , so detectCores() return value is 4. However, for many compute-intensive tasks, the Hyper-Threading is not much helpful for improving performance, so we use the parameter of logical=FALSE to get the actual number of physical cores and then create the same number group.Since the worker processes in the group is new R sessions, the data and functions of the parent process is not visible. Therefore, we have to broadcast the data and functions to all worker processes by clusterExport function. Finally parLapply will distribute the tasks to all R worker processes evenly, and then gather results back.
+1
+2
+3
+4
+5
+6
+7
+8
+	
+# cluster on Windows
+cores <- detectCores(logical = FALSE)
+cl <- makeCluster(cores)
+clusterExport(cl, c('solve.quad.eq', 'a', 'b', 'c'))
+system.time(
+   res1.p <- parLapply(cl, 1:len, function(x) { solve.quad.eq(a[x], b[x], c[x]) })
+)
+stopCluster(cl)
+
+For the for loop parallelization, we can use %dopar% in foreach package to distribute the computations to multiple R workers. foreach package provides a method of data mapping, but does not include the establishment of computing group.Therefore, we need to create a computing group by doParallel or doMC package. Creating computing group is as same as before, except setting backend of computations by registerDoParallel.
+
+R was originally designed for single-threaded so that many of the underlying data structures and functions are not thread-safe. Therefore, lots of codes need to be rewritten or adjust for high-level parallel algorithms. 
