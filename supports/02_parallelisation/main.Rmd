@@ -15,9 +15,13 @@ knitr::opts_chunk$set(echo = TRUE)
 On parle de calcul parallèle lorsque des calculs sont effectués de manière simultanée, par opposition à une exécution séquentielle des calculs. **embarassingly parallel*
 Outre l'intérêt évident en termes de CPU, un autre intérêt du parallélisme est qu'il est plus parcimonieux en mémoire: en traitant des blocs moins volumineux, on réduit les besoins de mémoire (liés par exemple à des *copy* multiples)
 
-Le calcul parallèle est particulièrement adapté dans des situations où on peut traiter des blocs de données indépendamment. Les simulations numériques, le bootstrapping ou encore des statistiques descriptives par groupe sont autant de champs où l'utilisation du calcul parallèle s'avère utile. La stratégie généralement adoptée est celle du `split`-`apply`-`combine` ou `divide and conquer` ****
+Le calcul parallèle est particulièrement adapté dans des situations où on peut traiter des blocs de données indépendamment. Les simulations numériques, le bootstrapping ou encore des statistiques descriptives par groupe sont autant de champs où l'utilisation du calcul parallèle s'avère utile. La stratégie généralement adoptée est celle du `split`-`apply`-`combine` ou `divide and conquer`. On commence par découper (*split*) les données en blocs homogènes, indépendants. Sur ces blocs, on exécute (*apply*) des fonctions. Enfin, on regroupe les résultats (*combine*)
 
-Des language très performants, tels que `spark`, reposent sur ce principe de la parallélisation en traintant les données par bloc tout en assurant une communication efficace entre ces blocs. 
+![](./pics/split_apply_combine.png)
+
+Dans le scénario le plus simple, comme ci-dessous, la combinaison des données revient à une simple concaténation. Comme nous le verrons avec `spark`, l'étape finale peut être plus complexe.
+
+Des language très performants, tels que `spark`, reposent sur ce principe de la parallélisation en traintant les données par bloc tout en assurant une communication efficace entre ces blocs (le paradigme `map-reduce` est une application du principe `split`-`apply`-`combine` aux données volumineuses, @wickham2011split). 
 
 Paralléliser les opérations ne doit pas être le premier réflexe. Avant de se préoccuper de parallélisation, il convient de s'assurer que:
 
