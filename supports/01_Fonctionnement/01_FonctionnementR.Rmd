@@ -447,7 +447,14 @@ ggplot2::autoplot(results_plus_one)
 
 ### Boucles: comparaison avec Python et C++
 
+Pour exécuter du code `Python` depuis `R`, on utilise le package `Reticulate`^[Pour les personnes utilisant l'intégration continue, cela nécessite d'adapter le dépôt `rocker`. Un exemple que je propose est le dépôt `pocker` que je propose sur `dockerhub`]
+
+```{r}
+library(reticulate)
+```
+
 ```{python, eval = TRUE}
+
 #conda_create("r-reticulate")
 #reticulate::conda_install("r-reticulate", "scipy")
 
