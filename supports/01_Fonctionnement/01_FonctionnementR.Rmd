@@ -2,7 +2,8 @@
 title: "Fondamentaux de l'optimisation en R"
 author: "Lino Galiana"
 date: "14 juin 2019"
-output: html_document
+  html_document:
+    css: ../style.css
 bibliography: ../bibliography.bib
 ---
 
@@ -13,17 +14,16 @@ knitr::knit_engines$set(python = reticulate::eng_python)
 
 ```{r check reticulate}
 library(reticulate)
-reticulate::py_available(TRUE)
+```
 
+```{r, echo=FALSE}
 # if (Sys.getenv("LOCAL")==""){
 #   python_path <- list.dirs("/usr/local/", full.names = FALSE)
 #   python_path <- python_path[startsWith(python_path,"python")]
 #   reticulate::use_python(paste0("/usr/local/", python_path, "/bin/python3"))
 #   # knitr::opts_chunk$set(engine.path = list(python = 'C:/Users/W3CRK9/AppData/Local/Continuum/anaconda3/envs/r-reticulate'))
 # }
-```
 
-```{r, eval=FALSE}
 if (Sys.getenv("LOCAL")==""){
   Sys.setenv(RETICULATE_PYTHON = "/opt/conda/envs/Reticulate/bin")
   use_condaenv("Reticulate")
@@ -42,7 +42,7 @@ if (Sys.getenv("LOCAL")==""){
 
 # Introduction
 
-L'objectif du cours est d'offrir une introduction aux possibilités qu'offre `R` pour faire des calculs lourds et lire de grosses bases de données. Les deux principales ressources disponibles sur le sujet sont les ouvrages *Efficient R Programming* [@gillespie2016efficient] et *Advanced R* [@wickham2014advanced]^[Dans ce cours, on adoptera la vision de l'efficience au sens d'efficience algorithmique, i.e. la vitesseà laquelle un programme s'exécute et les ressources nécessaires pour l'accomplissement de celui-ci. Nous parlerons peu de la notion d'efficacité de programmation: quantité de travail utile qu'un programmeur peut réaliser par unité de temps. A cet égard, des astuces et règles utiles sont présentées dans la Formation *travail collaboratif sous R* et dans le livre de @gillespie2016efficient].
+L'objectif général du cours est d'offrir une introduction aux possibilités qu'offre `R` pour faire des calculs lourds et lire des bases de données volumineuses. Les deux principales ressources disponibles sur le sujet sont les ouvrages *Efficient R Programming* [@gillespie2016efficient] et *Advanced R* [@wickham2014advanced]^[Dans ce cours, on adoptera la vision de l'efficience au sens d'efficience algorithmique, i.e. la vitesse à laquelle un programme s'exécute et les ressources nécessaires pour l'accomplissement de celui-ci. Nous parlerons peu de la notion d'efficacité de programmation: quantité de travail utile qu'un programmeur peut réaliser par unité de temps. A cet égard, des astuces et règles utiles sont présentées dans la Formation *travail collaboratif sous R* et dans le livre de @gillespie2016efficient].
 
 Avant de chercher à optimiser, le premier réflexe à adopter est de bien structurer le problème que l'on vise à résoudre et sélectionner le format de données et les *packages* les plus adéquats. `R` étant un langage très malléable, il existe généralement plusieurs manières de résoudre un problème: avoir un code efficace nécessite en premier lieu de choisir le meilleur outil disponible en `R`. Par exemple, si on doit passer par une boucle, il vaut mieux choisir rapidement de faire du `Rcpp` plutôt qu'écrire une boucle `R` qu'on accélèrera par la suite. Un des objectifs de ce cours est de faire connaître les outils les plus adéquats pour des problèmes génériques. Plutôt qu'essayer de paralléliser sur 16 coeurs, il est parfois préférable de bien en utiliser un seul. 
 
@@ -52,7 +52,7 @@ Alors que le volume de données disponibles et pouvant être combinées est croi
 
 # Plan du cours
 
-La première étape nécessaire pour être en mesure d'être efficace en `R` et de comprendre le fonctionnement du langage. Comprendre la manière dont `R` fonctionne permet de comprendre l'intérêt de la vectorisation ainsi que la manière dont la mémoire fonctionne en `R`. Ce détour par le lange de base permettra de mieux comprendre les raisons pour lesquelles `R` est un langage plus lent qu'un langage compilé et limité lorsqu'il est question de données volumineuses.
+La première étape nécessaire pour être en mesure d'être efficace en `R` et de comprendre le fonctionnement du langage. Comprendre la manière dont `R` fonctionne permet de comprendre l'intérêt de la vectorisation ainsi que la manière dont la mémoire fonctionne en `R`. Ce détour par le language de base permettra de mieux comprendre les raisons pour lesquelles `R` est un langage plus lent qu'un langage compilé et limité lorsqu'il est question de données volumineuses.
 
 
 # Outils utiles pour mesurer l'exécution de fonctions
@@ -155,6 +155,12 @@ Avec cet exemple, on voit que la majorité du temps est passée dans la représe
 
 ## Exercice
 
+Faire un `microbenchmark` d'une somme cumulative avec:
+
+1. Une boucle for
+2. Une solution utilisant `sapply`
+3. La fonction `cumsum`
+
 ```{r}
 x = 1:100 # initiate vector to cumulatively sum
 
@@ -213,9 +219,9 @@ La carte mère est le support physique permettant la coordination de l’ensembl
 
 Si l’architecture de Von-Neumann se caractérise par sa grande souplesse, elle présente en revanche trois gros inconvénients :
 
-1. Une exécution séquentielle : L’architecture de Von Neumann impose une exécution séquentielle des instructions. Avec ce modèle, il n’est donc pas possible d’effectuer différents travaux en parallèle.
-2. Un goulet d’étranglement : Alors que le microprocesseur peut exécuter des instructions très rapidement, celles-ci sont de toute façon ralenties par la vitesse de transfert des informations dans les bus de communication.
-3. Faible robustesse : Le fait que les données et les programmes soient mélangés engendre une fragilité du modéle de Von-Neumann : si une donnée est enregistrée à l’emplacement d’un programme, le comportement de l’ordinateur peut devenir complètement incohérent.
+1. Une exécution séquentielle. L’architecture de Von Neumann impose une exécution séquentielle des instructions. Avec ce modèle, il n’est donc pas possible d’effectuer différents travaux en parallèle.
+2. Un goulet d’étranglement. Alors que le microprocesseur peut exécuter des instructions très rapidement, celles-ci sont de toute façon ralenties par la vitesse de transfert des informations dans les bus de communication.
+3. Faible robustesse. Le fait que les données et les programmes soient mélangés engendre une fragilité du modéle de Von-Neumann : si une donnée est enregistrée à l’emplacement d’un programme, le comportement de l’ordinateur peut devenir complètement incohérent.
 
 Le système d'exploitation donne l'illusion que de nombreux processus peuvent être exécutés en même temps. Cela provient de la conjonction de deux effets : d’une part, les instructions exécutées par l’ordinateur sont extrêmement rapides (de l’ordre de quelques dizaines de millisecondes) et d’autre part, le système d’exploitation utilise les temps d’attente dans l’exécution d’une tâche pour orienter les ressources de l’ordinateur (micro-processeur + RAM...) vers l’exécution d’une autre tâche. Le fait que la plupart des ordinateurs soient maintenant dotés de plusieurs processeurs permet, si les applications sont adaptées, d’exécuter réellement plusieurs tâches simultanément. Malgré tout, le nombre d’instructions effectuées simultanément reste habituellement très inférieur au nombre d’applications en fonctionnement simultané.
 
@@ -361,7 +367,7 @@ Le poste utilisé pour les tests a des performances médianes: sans être catast
 >
 > *John Chambers*
 
-Appeler une function `R` revient en fait à appeler, de manière plus ou moins directe, un code `C` ou `Fortran` code. Les fonctions de base sont généralement des appels implicites à une fonction `C` sous-jacente. Par exemple, la fonction `runif()` contient une unique ligne qui est un appel à la fonction  `C_runif()`
+Appeler une function `R` revient en fait à appeler, de manière plus ou moins directe, un code `C` ou `Fortran` Les fonctions de base sont généralement des appels implicites à une fonction `C` sous-jacente. Par exemple, la fonction `runif()` contient une unique ligne qui est un appel à la fonction  `C_runif()`
 
 ```{r runif C call}
 runif
@@ -383,6 +389,7 @@ Pour obtenir de bonnes performances en `R`, il est important d'accéder aux rout
 Ce principe explique la lenteur des boucles en `R`. Par exemple, en supposant que `x` soit un vecteur standard, 
 
 ```{r, eval = FALSE}
+# ex: x <- runif(10)
 x = x + 1
 ```
 
@@ -409,7 +416,7 @@ En soi, la boucle *for* n'est pas longue mais les appels de fonctions sont bien 
 <!---- Comme nous le montrerons par la suite, si la vectorisation n'est pas possible, il est préférable d'utiliser la fonction `lapply` que la fonction `for`.---->
 
 
-#### Exercise
+#### Exercice
 
 Utilisez le package `microbenchmark` pour comparer la solution vectorielle à la solution boucle. Faites la comparaison en variant les tailles de vecteur
 
@@ -447,11 +454,14 @@ ggplot2::autoplot(results_plus_one)
 
 ### Boucles: comparaison avec Python et C++
 
-Pour exécuter du code `Python` depuis `R`, on utilise le package `Reticulate`^[Pour les personnes utilisant l'intégration continue, cela nécessite d'adapter le dépôt `rocker`. Un exemple que je propose est le dépôt `pocker` que je propose sur `dockerhub`]
+De nombreux tests de performance sont disponibles en ligne, notamment sur cette [page](https://h2oai.github.io/db-benchmark/). On propose un test plus modeste de comparaison des performances de `Python`, `R` et `C++`. Pour exécuter du code `Python` depuis `R`, on utilise le package `Reticulate`^[Pour les personnes utilisant l'intégration continue, cela nécessite d'adapter le dépôt `rocker` généralement utilisé. Un exemple que je propose est le dépôt `pocker`, disponible sur [dockerhub](https://cloud.docker.com/u/linogaliana/repository/docker/linogaliana/pocker) [github](https://github.com/linogaliana/pocker), [gitlab](https://gitlab.com/linogaliana/pocker). Pour une explication de la raison d'être d'une image `docker` de ce type, ce [post](https://linogaliana.netlify.com/post/pocker/pocker-a-docker-container-to-use-r-and-python-together/)].
+
 
 ```{r}
 library(reticulate)
 ```
+
+On se propose d'étudier la vitesse de ces langages sur l'opération très simple déjà évoquée `x <- x +1`. En `Python`, cela peut s'écrire:
 
 ```{python, eval = TRUE}
 
@@ -489,6 +499,8 @@ exec_time_python2 = [test2(100000) for k in range(100)]
 
 ```
 
+A noter que l'utilisation de `reticulate` peut induire un surcoût par rapport à une utilisation de `Python` dans un environnement dédié (`Pycharm`, `jupyter`...). La solution équivalente en `R ` est
+
 ```{r}
 test <- function(n = 1000){
   start <- Sys.time()
@@ -509,6 +521,8 @@ exec_time_R <- replicate(100, test(100000))
 # median(exec_time_R*1000)
 exec_time_R2 <- replicate(100, test2(100000))
 ```
+
+La traduction `C++` est presque immédiate grâce à `Rcpp` (cf. chapitre dédié):
 
 ```{Rcpp, eval = FALSE}
 #include <Rcpp.h>
@@ -536,14 +550,15 @@ exec_time_cpp <- replicate(100, test_cpp_R(100000))
 
 ```
 
+On peut reproduire un graphique proche de celui produit par `microbenchmark` pour déterminer la vitesse d'exécution des différentes approches:
 
 ```{r}
 exec_times <- do.call(rbind,list(
   data.frame(t = py$exec_time_python, langage = "python [loop]"),
   data.frame(t = exec_time_R, langage = "R [loop]"),
   data.frame(t = py$exec_time_python2, langage = "python"),
-  data.frame(t = exec_time_R2, langage = "R"),
- data.frame(t = exec_time_cpp, langage = "Rcpp")
+  data.frame(t = exec_time_R2, langage = "R [base]"),
+  data.frame(t = exec_time_cpp, langage = "Rcpp")
 ))
 ggplot2::ggplot(data = exec_times) + ggplot2::geom_violin(ggplot2::aes(x = langage, y = log(t)))
 ```
