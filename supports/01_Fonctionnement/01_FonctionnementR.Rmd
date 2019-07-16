@@ -542,8 +542,8 @@ exec_times <- do.call(rbind,list(
   data.frame(t = py$exec_time_python, langage = "python [loop]"),
   data.frame(t = exec_time_R, langage = "R [loop]"),
   data.frame(t = py$exec_time_python2, langage = "python"),
-  data.frame(t = exec_time_R2, langage = "R")#,
-#  data.frame(t = exec_time_cpp, langage = "Rcpp")
+  data.frame(t = exec_time_R2, langage = "R"),
+ data.frame(t = exec_time_cpp, langage = "Rcpp")
 ))
 ggplot2::ggplot(data = exec_times) + ggplot2::geom_violin(ggplot2::aes(x = langage, y = log(t)))
 ```
