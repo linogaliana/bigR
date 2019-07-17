@@ -2,8 +2,9 @@
 title: "Fondamentaux de l'optimisation en R"
 author: "Lino Galiana"
 date: "14 juin 2019"
+output:
   html_document:
-    css: ../style.css
+    css: ./style.css
 bibliography: ../bibliography.bib
 ---
 
