@@ -525,7 +525,7 @@ exec_time_R2 <- replicate(100, test2(100000))
 
 La traduction `C++` est presque immédiate grâce à `Rcpp` (cf. chapitre dédié):
 
-```{Rcpp, eval = FALSE}
+```{Rcpp, eval = TRUE}
 #include <Rcpp.h>
 using namespace Rcpp;
 
@@ -540,7 +540,7 @@ int test_cpp(int n) {
 }
 ```
 
-```{r, eval = FALSE}
+```{r, eval = TRUE}
 test_cpp_R <- function(n = 1000){
   start <- Sys.time()
   x <- test_cpp(n)
