@@ -528,6 +528,7 @@ La traduction `C++` est presque immédiate grâce à `Rcpp` (cf. chapitre dédi�
 ```{Rcpp, eval = TRUE}
 #include <Rcpp.h>
 using namespace Rcpp;
+#include <Rcpp/Benchmark/Timer.h>
 
 // [[Rcpp::export]]
 int test_cpp(int n) {
