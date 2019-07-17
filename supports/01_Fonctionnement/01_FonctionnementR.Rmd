@@ -531,24 +531,32 @@ using namespace Rcpp;
 
 // [[Rcpp::export]]
 int test_cpp(int n) {
-  NumericVector x = R::runif(n) ;
+  
+    // start the timer
+  Timer timer;
+  timer.step("start");        // record the starting point
+  
+  NumericVector x = runif(n);
+  
   for (int i=0; i < n; ++i) {
     x[i] += 1;
   }
-  return n;
+
+  timer.step("end");   // record the final step    
+  
+  
+  NumericVector res(timer);   // 
+  for (int i=0; i<res.size(); i++) {
+    res[i] = res[i] / n;
+  }
+  return (res[1]-res[0])/1000; // Milliseconds    
+  
   //return x;
 }
 ```
 
 ```{r, eval = TRUE}
-test_cpp_R <- function(n = 1000){
-  start <- Sys.time()
-  x <- test_cpp(n)
-  end = Sys.time()
-  return(end - start)
-}
-exec_time_cpp <- replicate(100, test_cpp_R(100000))
-
+exec_time_cpp <- replicate(100, test_cpp(100000))
 ```
 
 On peut reproduire un graphique proche de celui produit par `microbenchmark` pour déterminer la vitesse d'exécution des différentes approches:
