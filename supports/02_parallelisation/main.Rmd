@@ -78,6 +78,7 @@ parallel_group_by <- function(df,
                               ncores = ncores,
                               type = c("PSOCK", "FORK")){
   type <- match.arg(type)
+  ncores <- parallel::detectCores() - 1
   cl <- parallel::makeCluster(ncores, type = type)  
   sp <- parallel::parLapply(cl, df, function(k) mean(k$Petal.Width, na.rm=TRUE))
   parallel::stopCluster(cl)
