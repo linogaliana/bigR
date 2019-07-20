@@ -85,52 +85,11 @@ parallel_group_by <- function(df,
 }
 
 microbenchmark::microbenchmark(
-  parallel_group_by(df, type = "FORK"),
-  parallel_group_by(df, type = "PSOCK")
+  parallel_group_by(df, type = "FORK")#,
+#  parallel_group_by(df, type = "PSOCK")
 )
 ```
   
-
-rbenchmark::benchmark(replications = 10, order = "elapsed", relative = "elapsed",
-                        columns = c("test", "replications", "elapsed", "relative"),
-  "  FORK" = parFilter(df, ex, "FORK"),
-  "SOCKET" = parFilter(df, ex, "PSOCK")
-)
-
-ou alors
-
-# Create a socket cluster with 2 nodes
-cl_sock <- makeCluster(2, type = "PSOCK")
-
-# Evaluate the print function on each node
-clusterCall(cl_sock, print_global_var)
-
-# Stop the cluster
-stopCluster(cl_sock)
-
-# Create a fork cluster with 2 nodes
-cl_fork <- makeCluster(2, type = "FORK")
-
-# Evaluate the print function on each node
-clusterCall(cl_fork, print_global_var)
-
-# Change the global var to "after"
-a_global_var <- "after"
-
-# Evaluate the print fun on each node again
-clusterCall(cl_fork, print_global_var)
-
-# Stop the cluster
-stopCluster(cl_fork)
-
-Voracious variable hunting! Socket clusters are initialized without variables, so a_global_var wasn't found. Fork clusters take a copy of global variables, but changes made after the cluster was created are not copied to each node. 
-
-here were two problems in the previous exercise:
-
-    The socket cluster failed to print a_global_var.
-    The fork cluster did not update a_global_var after it was updated.
-
-Workers in a socket cluster start with an empty environment.Fork copies the master environment.
 
 
 # Parallélisation dans `R` : premiers essais
