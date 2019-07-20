@@ -12,5 +12,6 @@ Imports:
     import,
     magrittr,
     microbenchmark,
+    parallel,
     reticulate,
     rmarkdown

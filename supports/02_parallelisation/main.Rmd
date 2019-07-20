@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 On parle de calcul parallèle lorsque des calculs sont effectués de manière simultanée, par opposition à une exécution séquentielle des calculs. **embarassingly parallel*
 Outre l'intérêt évident en termes de CPU, un autre intérêt du parallélisme est qu'il est plus parcimonieux en mémoire: en traitant des blocs moins volumineux, on réduit les besoins de mémoire (liés par exemple à des *copy* multiples)
 
-Le calcul parallèle est particulièrement adapté dans des situations où on peut traiter des blocs de données indépendamment. Les simulations numériques, le bootstrapping ou encore des statistiques descriptives par groupe sont autant de champs où l'utilisation du calcul parallèle s'avère utile. La stratégie généralement adoptée est celle du `split`-`apply`-`combine` ou `divide and conquer`. On commence par découper (*split*) les données en blocs homogènes, indépendants. Sur ces blocs, on exécute (*apply*) des fonctions. Enfin, on regroupe les résultats (*combine*)
+Le calcul parallèle est particulièrement adapté dans des situations où on peut traiter des blocs de données indépendamment. Les simulations numériques, le bootstrapping ou encore des statistiques descriptives par groupe sont autant de champs où l'utilisation du calcul parallèle s'avère utile. La stratégie généralement adoptée est celle du `split`-`apply`-`combine` ou `divide and conquer`. On commence par découper (*split*) les données en blocs homogènes, indépendants. Sur ces blocs, on exécute (*apply*) des fonctions. Enfin, on regroupe les résultats (*combine*). On parle parfois de modèle `master`- `slave` ou `master`- `worker`: le maître (`master`) se charge des étapes split et combine, laissant l'étape apply aux escales (`slaves`). 
 
 ![](./pics/split_apply_combine.png)
 
@@ -25,14 +25,16 @@ Des language très performants, tels que `spark`, reposent sur ce principe de la
 
 Paralléliser les opérations ne doit pas être le premier réflexe. Avant de se préoccuper de parallélisation, il convient de s'assurer que:
 
-* le code est efficace sur un coeur
+* le code est efficace sur un seul coeur
 * le problème est adapté à la parallélisation. Le parallélisme ne prend sens que dans un cadre où on peut restructurer les données en blocs indépendants. Une somme cumulative sur un vecteur ne sera pas à une situation où la parallélisation apportera un gain (elle peut même ralentir le système). 
 * le *hardware* est adapté à la parallélisation. Comme mettre en place une structure de parallélisation a un coup en termes de temps, il faut que le gain de temps associé à la parallélisation des calculs soit suffisant. De manière générale, il ne faut pas espérer une division du temps de calcul par $n$ dans un ordinateur avec $n$ coeurs. A partir de 4 coeurs, on peut tout de même espérer des gains de temps significatifs. 
 
+Dans ce chapitre, nous montrerons les gains permis par la parallélisation en conjonction du `tidyverse`. Comme nous le montrerons dans le chapitre suivant, l'adoption de `data.table` offre une alternative intéressante et souvent préférable à une parallélisation aveugle. 
 
-## Parallel computing vs multithreading
 
-Un processeur est dit multithread s'il est capable d'exécuter efficacement plusieurs *threads* (tâches élémentaires) simultanément. Contrairement aux systèmes multiprocesseurs (tels les systèmes multi-cœur), les threads doivent partager les ressources d'un unique coeur : les unités de traitement, le cache processeur et le translation lookaside buffer ; certaines parties sont néanmoins dupliquées : chaque thread dispose de ses propres registres et de son propre pointeur d'instruction. Là où les systèmes multiprocesseurs incluent plusieurs unités de traitement complètes, le multithreading a pour but d'augmenter l'utilisation d'un seul coeur en tirant profit des propriétés des threads et du parallélisme au niveau des instructions. 
+## Calcul parallèle vs multithreading
+
+Un processeur est dit *multithread* s'il est capable d'exécuter efficacement plusieurs *threads* (tâches élémentaires) simultanément. Contrairement aux systèmes multiprocesseurs (tels les systèmes multi-coeur), les threads doivent partager les ressources d'un unique coeur : les unités de traitement, le cache processeur et le *translation look-aside buffer* ; certaines parties sont néanmoins dupliquées : chaque thread dispose de ses propres registres et de son propre pointeur d'instruction. Là où les systèmes multiprocesseurs incluent plusieurs unités de traitement complètes, le multithreading a pour but d'augmenter l'utilisation d'un seul coeur en tirant profit des propriétés des threads et du parallélisme au niveau des instructions. 
 
 <!-------
 La librairie ne permet pas d’accélérer miraculeusement une procédure existante. En revanche, elle nous donne l’opportunité d’exploiter efficacement les ressources machines à condition de reprogrammer la procédure en réorganisant judicieusement les calculs. L’idée maîtresse est de pouvoir décomposer le processus en tâches que l’on peut exécuter en parallèle, charge à nous par la suite d’effectuer la consolidation.
@@ -48,13 +50,88 @@ On thing on threads the operating system performs a task known as "scheduling" i
 Multithreading and Multicore are different pieces of terminology that apply to different areas of computing.
 ---------->
 
-TO DO: FORK vs SOCKET
+## Fork vs socket
 
-[vignette parallel]: Fork is a concept2 from POSIX operating systems, and should be available on
-all R platforms except Windows. This creates a new R process by taking a complete copy
-of the master process, including the workspace and state of the random-number stream.
-However, the copy will (in any reasonable OS) share memory pages with the master until
-modied so forking is very fast.
+
+
+> Fork is a concept from POSIX operating systems, and should be available on all R platforms except Windows. This creates a new R process by taking a complete copy of the master process, including the workspace and state of the random-number stream.
+> However, the copy will (in any reasonable OS) share memory pages with the master until modified so forking is very fast.
+> Vignette du package `parallel`
+
+Les systèmes `unix` (mac et linux) et windows ne gèrent pas la parallélisation de la même manière. Il y a en fait deux manières de gérer des opérations parallèles (plus de détail [ici](https://www.r-bloggers.com/parallel-r-socket-or-fork/) et dans la vignette du package `parallel`):
+
+* **fork**: chaque processus parallèle est une duplication complète du maître et partage un environnement commun avec celui-ci, ce qui évite les copies d'objets réduisant la performance. Cette approche fonctionne uniquement dans les systèmes unix, pas windows.  
+* **socket**: chaque processus fonctionne indépendamment, sans partage de variables ou objets communs sauf indication explicite (induisant une copie sur tous les slaves). Cela induit une perte de performance liée à la surcouche de communication. Néanmoins, c'est la seule approche possible sur Windows. 
+
+
+Below is an example showing the performance difference between the fork and the socket. A self-defined filter function runs in parallel and exacts three rows out of 336,776 that are meeting criteria. As shown, the fork runs 40% faster than the socket.
+
+```{r}
+df <- split(iris, iris$Species)
+
+
+ncores <- parallel::detectCores() - 1
+
+ncores
+
+parallel_group_by <- function(df,
+                              ncores = ncores,
+                              type = c("PSOCK", "FORK")){
+  type <- match.arg(type)
+  cl <- parallel::makeCluster(ncores, type = type)  
+  sp <- parallel::parLapply(cl, df, function(k) mean(k$Petal.Width, na.rm=TRUE))
+  parallel::stopCluster(cl)
+  return(sp)
+}
+
+microbenchmark::microbenchmark(
+  parallel_group_by(df, type = "FORK"),
+  parallel_group_by(df, type = "PSOCK")
+)
+```
+  
+
+rbenchmark::benchmark(replications = 10, order = "elapsed", relative = "elapsed",
+                        columns = c("test", "replications", "elapsed", "relative"),
+  "  FORK" = parFilter(df, ex, "FORK"),
+  "SOCKET" = parFilter(df, ex, "PSOCK")
+)
+
+ou alors
+
+# Create a socket cluster with 2 nodes
+cl_sock <- makeCluster(2, type = "PSOCK")
+
+# Evaluate the print function on each node
+clusterCall(cl_sock, print_global_var)
+
+# Stop the cluster
+stopCluster(cl_sock)
+
+# Create a fork cluster with 2 nodes
+cl_fork <- makeCluster(2, type = "FORK")
+
+# Evaluate the print function on each node
+clusterCall(cl_fork, print_global_var)
+
+# Change the global var to "after"
+a_global_var <- "after"
+
+# Evaluate the print fun on each node again
+clusterCall(cl_fork, print_global_var)
+
+# Stop the cluster
+stopCluster(cl_fork)
+
+Voracious variable hunting! Socket clusters are initialized without variables, so a_global_var wasn't found. Fork clusters take a copy of global variables, but changes made after the cluster was created are not copied to each node. 
+
+here were two problems in the previous exercise:
+
+    The socket cluster failed to print a_global_var.
+    The fork cluster did not update a_global_var after it was updated.
+
+Workers in a socket cluster start with an empty environment.Fork copies the master environment.
+
 
 # Parallélisation dans `R` : premiers essais
 
