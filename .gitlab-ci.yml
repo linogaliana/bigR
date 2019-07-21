@@ -1,9 +1,8 @@
-image: linogaliana/pocker
-
 before_script:
    - export PATH="/opt/conda/bin:$PATH"
 
 article:
+  image: linogaliana/pocker
   stage: deploy
   script:
     - Rscript -e "devtools::install_deps()"
@@ -14,3 +13,14 @@ article:
       - html
     when: always
     
+article2:
+  image: rocker/r-parallel
+  stage: deploy
+  script:
+    - Rscript -e "devtools::install_deps()"
+    - Rscript ./build2.R
+    - echo "Rmarkdown compilation worked"
+  artifacts:
+    paths:
+      - html2
+    when: always

@@ -64,8 +64,6 @@ Les systèmes `unix` (mac et linux) et windows ne gèrent pas la parallélisatio
 * **socket**: chaque processus fonctionne indépendamment, sans partage de variables ou objets communs sauf indication explicite (induisant une copie sur tous les slaves). Cela induit une perte de performance liée à la surcouche de communication. Néanmoins, c'est la seule approche possible sur Windows. 
 
 
-Below is an example showing the performance difference between the fork and the socket. A self-defined filter function runs in parallel and exacts three rows out of 336,776 that are meeting criteria. As shown, the fork runs 40% faster than the socket.
-
 ```{r}
 df <- split(iris, iris$Species)
 
@@ -99,25 +97,14 @@ microbenchmark::microbenchmark(
 
 Il existe plusieurs packages dédiés à la parallélisation des calculs en `R`:
 
-* `parallel`: pré-installé sur `R` depuis la version 2.14. Il s'agit de la fondation pour des packages ultérieurs. Cependant, la fonction `parallel::mclapply` fonctionne sur les systèmes `unix` (Mac et Linux) mais ne parallélise pas les calculs sur `Windows`
+* `parallel`: pré-installé sur `R` depuis la version 2.14. Il s'agit de la fondation pour des packages ultérieurs. Cependant, la fonction `parallel::mclapply` fonctionne sur les systèmes `unix` (Mac et Linux) mais ne parallélise pas les calculs sur `Windows`. Sur `Windows`, on privilégiera `parallel::parLapply` qui fonctionne quelque soit l'OS et offre une syntaxe très proche de la fonction `lapply`
 * `snow`: implémentation des fonctions `*apply` dans un cadre parallèle. La fonction `snow::parLapply` permet, par exemple, d'effectuer des traitements sur chaque éléments d'une liste de manière indépendante. 
-* `foreach`: offre une plus grande flexibilité. C'est le package que nous utiliserons. Le package doit être utilisé en conjonction avec un package comme `doParallel` pour mettre en place les *clusters* et les associer aux données devant être traitées. 
+* `foreach`: offre une plus grande flexibilité. C'est le package que nous utiliserons. Le package doit être utilisé en conjonction avec un package comme `doParallel` pour mettre en place les *clusters* et les associer aux données devant être traitées^[`doParallel` est approprié pour gérer la parallélisation sur un ordinateur individuel car il repose sur le package `multicore`. Il gère la différence entre un système windows et unix. En revanche, `doParallel` n'est pas adapté pour une parallélisation sur un cluster d'ordinateurs]. Sans initialisation des *clusters*, la commande `%dopar%` ne produira pas la parallélisation attendue mais exécutera les tâches séquentiellement. 
+
+La parallélisation nécessite d'être attentif à l'initialisation des processus esclaves. Même si, en théorie, on peut fixer autant de processus que désiré, indépendamment du *hardware*, il est préférable, en pratique, de fixer le nombre de processus au nombre de coeurs disponibles^[Un ordinateur peut avoir plus de coeurs disponibles (coeurs logiques) que de coeurs physiques. On utilisera le nombre de coeurs logiques moins un. Pour utiliser le nombre de coeurs physiques d'une machine, on peut faire `parallel::detectCores(logical = FALSE)` au lieu de `parallel::detectCores()`] moins un. Le fait de créer $N-1$ processus esclaves permet de garder un coeur au *master*. 
 
 
-The foreach package must be used in conjunction
-with a package such as doParallel in order to execute code in parallel. The user must register a
-parallel backend to use, otherwise foreach will execute tasks sequentially, even when the %dopar%
-operator is used
 
-y default, doParallel uses multicore
-functionality on Unix-like systems and snow functionality on Windows. Note that the multicore
-functionality only runs tasks on a single computer, not a cluster of computers. However, you can
-use the snow functionality to execute on a cluster, using Unix-like operating systems, Windows, or
-even a combination. It is pointless to use doParallel and parallel on a machine with only one
-processor with a single core. To get a speed improvement, it must run on a machine with multiple
-processors, multiple cores, or both.
-
-For non-Linux users, we can use parLapply function in parallel package to achieve parallelism. parLapply function supports different platforms including Windows, Linux and Mac with better portability, but its usage is a little complicated than mclapply. Before using parLapply function, we need to create a computing group (cluster) first. Computing group is a software-level concept, which means how many R worker processes we need to create (Note: par*apply package will create several new R processes rather than copies of R master process from mc*apply). Theoretically, the size of the computing group is not affected by the hardware configuration.For example, we can create a group with 1000 R worker processes on any machine. In practice, we usually use the same size of computing group with hardware resources (such as physical cores) so that each worker process of R can be mapped to a physical core.
 
 In the following example, we start with detectCores function to determine the number of computing cores in the machine.It is noteworthy that detectCores() returns the number of Hyper-Threading rather than real physical cores.For example, there are two physical cores on my laptop, and each core can simulate two hyperthreading , so detectCores() return value is 4. However, for many compute-intensive tasks, the Hyper-Threading is not much helpful for improving performance, so we use the parameter of logical=FALSE to get the actual number of physical cores and then create the same number group.Since the worker processes in the group is new R sessions, the data and functions of the parent process is not visible. Therefore, we have to broadcast the data and functions to all worker processes by clusterExport function. Finally parLapply will distribute the tasks to all R worker processes evenly, and then gather results back.
 1
