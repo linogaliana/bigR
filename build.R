@@ -3,8 +3,8 @@
 # print(Sys.which("python"))
 Sys.setenv(RETICULATE_PYTHON = "/opt/conda/bin")
 
-# print(Sys.which("python"))
-# print(reticulate::py_config())
+print(Sys.which("python"))
+print(reticulate::py_config())
 
 f = list.files('supports', 'Rmd$', full.names = TRUE, recursive = TRUE)
 f = f[!grepl(pattern = "parallel", f)]
