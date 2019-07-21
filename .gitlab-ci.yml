@@ -17,7 +17,7 @@ article2:
   image: rocker/r-parallel
   stage: deploy
   script:
-    - Rscript -e "install.packages('httr', 'openssl', 'roxygen2', 'rsconnect', 'xml2', 'devtools', dependencies = TRUE)"
+    - Rscript -e "install.packages(c('httr', 'openssl', 'roxygen2', 'rsconnect', 'xml2', 'devtools'), dependencies = TRUE)"
     - Rscript -e "devtools::install_deps()"
     - Rscript ./build2.R
     - echo "Rmarkdown compilation worked"
