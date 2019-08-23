@@ -2,28 +2,32 @@
 title: "Parallélisation"
 author: "Lino Galiana"
 date: "14 juin 2019"
-output: html_document
+output:
+  html_document:
+    css: ../style.css
 bibliography: ../bibliography.bib
 ---
 
+<script src="../js/hideOutput.js"></script>
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = TRUE)
+knitr::opts_chunk$set(warning = TRUE)
+
 ```
 
 
-The whole “let’s parallelize” thing is a huge waste of
-everybody’s time. There’s this huge body of
-“knowledge” that parallel is somehow more efficient,
-and that whole huge body is pure and utter garbage.
-Big caches are efficient. Parallel stupid small cores
-without caches are horrible unless you have a very
-specific load that is hugely regular (ie graphics).
-[. . . ]
-Give it up. The whole “parallel computing is the
-future” is a bunch of crock.
-Linus Torvalds,
+> The whole “let’s parallelize” thing is a huge waste of everybody’s time. There’s this huge body of “knowledge” that parallel is somehow more efficient, and that whole huge body is pure and utter garbage.
+> 
+> Big caches are efficient. Parallel stupid small cores without caches are horrible unless you have a very specific load that is hugely regular (ie graphics). [...]
+>
+> Give it up. The whole “parallel computing is the future” is a bunch of crock.
+>
+> Linus Torvalds
 
 
+<!--------
 Il faut pourtant conster que l'utilisation de codes compilés n'est plus suffisante pour obtenir des performances maximales. [...] Les fabricants ont cessé de chercher à créer des processeurs plus rapides, il y a environ 10 ans, lorsqu'ils ont plutôt choisi d'augmenter le nombre de coeurs computationnels à l'intérieur des processeurs. L'exploitation de ces coeurs multiples exige pour le programmeur l'adoption de techniques de programmation parallèle."
 Vincent Miele et Violaine Louvet, Calcul parallèle dans R
 
@@ -31,18 +35,19 @@ Vincent Miele et Violaine Louvet, Calcul parallèle dans R
 Règle: ne jamais optimizer prématurément
 
 https://books.google.fr/books?id=xaWyDgAAQBAJ&pg=PR9&lpg=PR9&dq=parallel+Rcpp+group+by&source=bl&ots=4CmQXgYd8v&sig=ACfU3U28I6J4EcQ4tx_SJi9QEjUnc7gMSw&hl=fr&sa=X&ved=2ahUKEwj5qcak2sjjAhUSJhoKHaxEDXUQ6AEwCHoECAkQAQ#v=onepage&q=parallel%20Rcpp%20group%20by&f=false
-
+-------------->
 
 # Principe
 
-On parle de calcul parallèle lorsque des calculs sont effectués de manière simultanée, par opposition à une exécution séquentielle des calculs. **embarassingly parallel*
-Outre l'intérêt évident en termes de CPU, un autre intérêt du parallélisme est qu'il est plus parcimonieux en mémoire: en traitant des blocs moins volumineux, on réduit les besoins de mémoire (liés par exemple à des *copy* multiples)
+On parle de calcul parallèle lorsque des calculs sont effectués de manière simultanée, par opposition à une exécution séquentielle des calculs. Outre l'intérêt évident en termes d'usage du CPU, un autre intérêt du parallélisme est qu'il est plus parcimonieux en mémoire: en traitant des blocs moins volumineux, on réduit les besoins de mémoire (liés par exemple à des *copy* multiples)
 
-Le calcul parallèle est particulièrement adapté dans des situations où on peut traiter des blocs de données indépendamment. Les simulations numériques, le bootstrapping ou encore des statistiques descriptives par groupe sont autant de champs où l'utilisation du calcul parallèle s'avère utile. La stratégie généralement adoptée est celle du `split`-`apply`-`combine` ou `divide and conquer`. On commence par découper (*split*) les données en blocs homogènes, indépendants. Sur ces blocs, on exécute (*apply*) des fonctions. Enfin, on regroupe les résultats (*combine*). On parle parfois de modèle `master`- `slave` ou `master`- `worker`: le maître (`master`) se charge des étapes *split* et *combine*, laissant l'étape *apply* aux esclaves (`slaves`). 
+Le calcul parallèle est particulièrement adapté dans des situations où on peut traiter des blocs de données indépendamment (le traitement séquentiel de tels problèmes étant typique du problème *embarassingly parallel*). Les simulations numériques, le bootstrapping ou encore des statistiques descriptives par groupe sont autant de champs où l'utilisation du calcul parallèle s'avère utile.
+
+La stratégie généralement adoptée est celle du `split`-`apply`-`combine` ou `divide and conquer`. On commence par découper (*split*) les données en blocs homogènes, indépendants. Sur ces blocs, on exécute (*apply*) des fonctions. Enfin, on regroupe les résultats (*combine*). On parle parfois de modèle `master`- `slave` ou `master`- `worker`: le maître (`master`) se charge des étapes *split* et *combine*, laissant l'étape *apply* aux esclaves (`slaves`). 
 
 ![](./pics/split_apply_combine.png)
 
-Dans le scénario le plus simple, comme ci-dessous, la combinaison des données revient à une simple concaténation. Comme nous le verrons avec `spark`, l'étape finale peut être plus complexe.
+Dans le scénario le plus simple, comme ci-dessus, la combinaison des données revient à une simple concaténation. Comme nous le verrons avec `spark`, l'étape finale peut être plus complexe.
 
 Des language très performants, tels que `spark`, reposent sur ce principe de la parallélisation en traintant les données par bloc tout en assurant une communication efficace entre ces blocs (le paradigme `map-reduce` est une application du principe `split`-`apply`-`combine` aux données volumineuses, @wickham2011split). 
 
@@ -57,7 +62,7 @@ Dans ce chapitre, nous montrerons les gains permis par la parallélisation en co
 
 ## Calcul parallèle vs multithreading
 
-Un processeur est dit *multithread* s'il est capable d'exécuter efficacement plusieurs *threads* (tâches élémentaires) simultanément. Contrairement aux systèmes multiprocesseurs (tels les systèmes multi-coeur), les threads doivent partager les ressources d'un unique coeur : les unités de traitement, le cache processeur et le *translation look-aside buffer* ; certaines parties sont néanmoins dupliquées : chaque thread dispose de ses propres registres et de son propre pointeur d'instruction. Là où les systèmes multiprocesseurs incluent plusieurs unités de traitement complètes, le multithreading a pour but d'augmenter l'utilisation d'un seul coeur en tirant profit des propriétés des threads et du parallélisme au niveau des instructions. 
+Un processeur est dit *multithread* s'il est capable d'exécuter efficacement plusieurs *threads* (tâches élémentaires) simultanément. Contrairement aux systèmes multiprocesseurs (tels les systèmes multi-coeur), les threads doivent partager les ressources d'un unique coeur : les unités de traitement, le *cache processor* et le *translation look-aside buffer* ; certaines parties sont néanmoins dupliquées : chaque thread dispose de ses propres registres et de son propre pointeur d'instruction. Là où les systèmes multiprocesseurs incluent plusieurs unités de traitement complètes, le multithreading a pour but d'augmenter l'utilisation d'un seul coeur en tirant profit des propriétés des threads et du parallélisme au niveau des instructions. 
 
 <!-------
 La librairie ne permet pas d’accélérer miraculeusement une procédure existante. En revanche, elle nous donne l’opportunité d’exploiter efficacement les ressources machines à condition de reprogrammer la procédure en réorganisant judicieusement les calculs. L’idée maîtresse est de pouvoir décomposer le processus en tâches que l’on peut exécuter en parallèle, charge à nous par la suite d’effectuer la consolidation.
@@ -78,22 +83,28 @@ Multithreading and Multicore are different pieces of terminology that apply to d
 
 
 > Fork is a concept from POSIX operating systems, and should be available on all R platforms except Windows. This creates a new R process by taking a complete copy of the master process, including the workspace and state of the random-number stream.
+>
 > However, the copy will (in any reasonable OS) share memory pages with the master until modified so forking is very fast.
+>
 > Vignette du package `parallel`
 
-Les systèmes `unix` (mac et linux) et windows ne gèrent pas la parallélisation de la même manière. Il y a en fait deux manières de gérer des opérations parallèles (plus de détail [ici](https://www.r-bloggers.com/parallel-r-socket-or-fork/) et dans la vignette du package `parallel`):
+Les systèmes `Unix` (Mac et Linux) et windows ne gèrent pas la parallélisation de la même manière. Il y a en fait deux manières de gérer des opérations parallèles (plus de détail [ici](https://www.r-bloggers.com/parallel-r-socket-or-fork/) et dans la vignette du package `parallel`):
 
 * **fork**: chaque processus parallèle est une duplication complète du maître et partage un environnement commun avec celui-ci, ce qui évite les copies d'objets réduisant la performance. Cette approche fonctionne uniquement dans les systèmes unix, pas windows.  
 * **socket**: chaque processus fonctionne indépendamment, sans partage de variables ou objets communs sauf indication explicite (induisant une copie sur tous les slaves). Cela induit une perte de performance liée à la surcouche de communication. Néanmoins, c'est la seule approche possible sur Windows. 
 
+Le comparatif ci-dessous compare la vitesse des deux approches sur un système `unix`. Nous expliquerons dans la suite chaque étape du code ci-dessous, même si nous privilégierons `foreach::foreach` à `parallel::parLapply`
 
+**TO DO sur une machine Linux -----> **
+
+<!--- <div class="fold s">   --->
 ```{r}
 df <- split(iris, iris$Species)
 
 
 ncores <- parallel::detectCores() - 1
 
-ncores
+print(paste0("Nombre de processus esclaves pouvant être initialisés: ", ncores))
 
 parallel_group_by <- function(df,
                               ncores = ncores,
@@ -107,16 +118,16 @@ parallel_group_by <- function(df,
 }
 
 microbenchmark::microbenchmark(
-  parallel_group_by(df, type = "FORK")#,
-#  parallel_group_by(df, type = "PSOCK")
+  #parallel_group_by(df, type = "FORK")#,
+  parallel_group_by(df, type = "PSOCK")
 )
 ```
-  
+<!--- </div> -->
 
 
 # Parallélisation dans `R` : premiers essais
 
-## Quel package utiliser ?
+## Quel(s) package(s) utiliser ?
 
 Il existe plusieurs packages dédiés à la parallélisation des calculs en `R`:
 
@@ -133,6 +144,8 @@ In the following example, we start with detectCores function to determine the nu
 
 # Parallélisation avec le package `foreach`
 
+
+
 ## Mise en place de la parallélisation
 
 <!----
@@ -141,18 +154,20 @@ library(doParallel)
 > registerDoParallel(cl)
 ------>
 
-Le package foreach propose deux fonctions utiles pour le traitement d'opérations:
-
-* `%do%`: propose une alternative à `lapply` pour un traitement séquentialisé des opérations
-* `%dopar%`: propose une alternative à `lapply` pour un traitement parallélisé des opérations
-
-Pour se simplifier la vie, on va importer le package `foreach`:
+Pour se simplifier la vie, on va importer le package `foreach`^[L'ensemble des programmes de ce `markdown` pourraient être exécutés sans importer le package `foreach` dans son ensemble mais uniquement les fonctions `%dopar%` et `%do%`, par exemple avec le package `import`: `import::from("data.table","%dopar%")` et `import::from("data.table","%do%")` ]:
 
 ```{r}
 library(foreach)
 ```
 
-```{r}
+
+Le package `foreach` propose deux fonctions utiles pour le traitement d'opérations:
+
+* `%do%`: propose une alternative à `lapply` pour un traitement séquentialisé des opérations, c'est-à-dire une tâche après l'autre.
+* `%dopar%`: propose une alternative à `lapply` pour un traitement parallélisé des opérations
+
+
+```{r, warning=TRUE}
 microbenchmark::microbenchmark(
   foreach(i=1:100) %do% sqrt(i),
   foreach(i=1:100) %dopar% sqrt(i),
@@ -160,20 +175,23 @@ microbenchmark::microbenchmark(
 )
 ```
 
-Sans définition des clusters, la fonction `%dopar%` exécute ainsi les tâches séquentiellement: on ne peut espérer de gain de celle-ci par rapport à une solution non parallélisée. `%dopar%` renvoit d'ailleurs un *warning* dans ce type de situation. Ce benchmark montre, encore une fois, qu'une solution vectorisée reste préférable à une exécution séquentialisée sous-optimale. 
+Sans définition des clusters, la fonction `%dopar%` exécute ainsi les tâches séquentiellement: on ne peut espérer de gain de celle-ci par rapport à une solution non parallélisée. `%dopar%` renvoie d'ailleurs un *warning* dans ce type de situation. Ce benchmark montre, encore une fois, qu'une solution vectorisée reste préférable à une exécution séquentialisée sous-optimale. 
 
 
 ## Initialisation de la configuration parallèle
 
-Il existe de multiples manières d'initialiser la parallélisation. Le modèle ci-dessous suit le plan suivant:
+Il existe de multiples manières d'initialiser la parallélisation. Le modèle ci-dessous suit le plan suivant (on complètera la partie 3 par la suite):
 
-* on découpe les données en fonction d'une variable de groupe
-* on initialise les processus esclaves et crée une barre de progrès
-* on effectue une ou plusieurs tâches en parallèle
-* on ferme les clusters. C'est important de le faire après chaque parallélisation pour éviter de saturer la mémoire et la CPU avec des processus inactifs
+1. On découpe les données en fonction d'une variable de groupe
+2. On initialise les processus esclaves et crée une barre de progrès
+3. On effectue une ou plusieurs tâches en parallèle
+4. On ferme les clusters. C'est important de le faire après chaque parallélisation pour éviter de saturer la mémoire et la CPU avec des processus inactifs^[Sur Linux, avec la commande `htop`, on peut voir l'ensemble des processus actifs sur un serveur. On peut facilement identifier ceux liés à des processus esclaves: ceux-ci saturent le serveur, donc affectent l'ensemble des utilisateurs. Il est ainsi important, en local comme sur un serveur, de fermer les clusters]
 
 
 ```{r, eval = FALSE}
+
+# ETAPE 1: DECOUPE LES DONNEES
+# --------------------------------
 
 df <- data.frame(
   x = rnorm(10e5),
@@ -182,7 +200,10 @@ df <- data.frame(
 
 df <- split(df,df$y)
 
-# CLUSTER INITIALIZATION  
+
+# ETAPE 2: CLUSTER INITIALIZATION  
+# ----------------------------------
+
 cl <- parallel::makeCluster(parallel::detectCores()-1,
                             outfile = "")
 doSNOW::registerDoSNOW(cl)
@@ -191,20 +212,22 @@ doSNOW::registerDoSNOW(cl)
 pb <- txtProgressBar(max = length(df), style = 3)
 progress <- function(n) setTxtProgressBar(pb, n)
 opts <- list(progress = progress)
+
+# ETAPE 3: PARTIE PARALLELISATION
+# -----------------------------------
 #
-# PARTIE PARALLELISATION
-#
+# DO SOMETHING
+
+# ETAPE 4: ON FERME LES CLUSTERS
+# -----------------------------------
+
 parallel::stopCluster(cl)
 ```
 
 
-```{r, eval = FALSE}
-stopCluster
-```
-
 ## Un premier programme parallélisé
 
-On reprend le *dataframe*
+Au cours de cet exemple, on va utiliser le *dataframe* ci-dessous, décomposé sous forme de liste:
 
 ```{r}
 df <- data.frame(
@@ -213,17 +236,28 @@ df <- data.frame(
 )
 
 df_list <- split(df,df$y)
+
+head(df)
 ```
 
 On va créer les clusters et utiliser le package `foreach`. On fournit les options suivantes à `foreach`:
 
-* g: le groupe sur lequel on effectue le traitement. Vous pouvez l'appeler autrement, c'est un argument qui n'est pas contraint par le nom tant que vous êtes cohérent avec celui-ci dans `%dopar%`
-* .combine: la manière dont les données sont assemblées à l'issue des tâches. A titre personnel, j'utilise toujours `.combine = "list"` pour la flexibilité permise par `R` dans le maniement des listes. D'autres combinaisons sont possibles (`c`,`cbind`,`rbind`,`+`, etc. )
+* `g`: le groupe sur lequel on effectue le traitement. Vous pouvez l'appeler autrement, c'est un argument qui n'est pas contraint par le nom tant que vous êtes cohérent avec celui-ci dans `%dopar%`
+* `.combine`: la manière dont les données sont assemblées à l'issue des tâches. A titre personnel, j'utilise souvent `.combine = "list"` pour la flexibilité permise par `R` dans le maniement des listes. D'autres combinaisons sont possibles (`c`,`cbind`,`rbind`,`+`, etc. ), comme nous le verrons avec l'exercice consacré au bootstrap
 * `.multicombine = TRUE` et `.maxcombine = TRUE`: permet de sortir une liste, éventuellement à plusieurs niveaux, dont le nombre de premier niveau est égal au nombre de groupes
 * `.options.snow`: les options supplémentaires à passer au package `foreach`. Ici, ce sont les barres de progrès
 
 
-```{r}
+Dans le coeur de la boucle `%dopar%`, on va répliquer le comportement `split`-`apply`-`combine` des approches `tidyverse` ou `data.table`. Il s'agit, tout simplement, de faire une moyenne en sortant également le groupe. On coeur de `%dopar%`, on va ainsi retourner `data.frame(x = mean(g$x), y = unique(g$y))`. 
+
+**Exercice**: Sachant la structure proposée précédemment:
+
+1. Compléter la structure précédente pour faire la moyenne par groupe
+2. En supposant que l'*output* de `foreach` est nommé `output`, utiliser la fonction `do.call` avec l'argument `what = rbind` et `args = output` pour regrouper les données (ou alors utiliser l'argument `.combine = "rbind"` plutôt que `.combine = "list"`)
+3. Profiler l'ensemble grâce à la fonction `profvis::profvis`
+
+<div class="fold s">
+```{r, eval = FALSE}
 profvis::profvis({
   # CLUSTER INITIALIZATION  
   cl <- parallel::makeCluster(parallel::detectCores()-1,
@@ -238,9 +272,28 @@ profvis::profvis({
                              .multicombine = TRUE,
                              .maxcombine = length(df_list),
                              .options.snow=opts
-                             #                       .export = c("descript"),
-                             #                       .packages = c("dplyr")
   ) %dopar% {
+    data.frame(x = mean(g$x), y = unique(g$y))
+  }
+  
+  # CLOSE CLUSTERS  
+  parallel::stopCluster(cl)
+  
+  output <- do.call(rbind, output)
+})
+```
+</div>
+
+```{r, show = FALSE}
+profvis::profvis({
+  # CLUSTER INITIALIZATION  
+  cl <- parallel::makeCluster(parallel::detectCores()-1,
+                              outfile = "")
+  doSNOW::registerDoSNOW(cl)
+  
+  output <- foreach::foreach(g = df_list, .combine = "list",
+                             .multicombine = TRUE,
+                             .maxcombine = length(df_list)) %dopar% {
     data.frame(x = mean(g$x), y = unique(g$y))
   }
   
@@ -253,6 +306,7 @@ profvis::profvis({
 
 De nombreuses options supplémentaires sont disponibles, rendant le contrôle de la configuration aisé. La ligne finale `do.call(rbind, output)` consiste seulement à restructurer les données sous forme de *dataframe*: c'est un enchaînement classique et très pratique d'avoir des résultats stockés sous forme de liste et appliquer la fonction `do.call`
 
+Le code équivalent, avec `dplyr` est beaucoup moins bavare:
 
 ```{r}
 profvis::profvis({
@@ -264,7 +318,9 @@ profvis::profvis({
 
 Ce *profiling* montre qu'ici l'approche parallélisée est moins rapide (le coût fixe payé par l'initialisation des clusters n'est pas compensé par un temps d'exécution plus rapide que `dplyr`). Néanmoins, en termes de mémoire, la parallélisation est beaucoup plus parcimonieuse. Le fait de traiter des données en blocs moins volumineux permet d'utiliser 20 fois moins de mémoire qu'avec `dplyr`. 
 
-Voyons voir l'intérêt de la parallélisation sur une tâche plus complexe: une régression linéaire par groupe 
+### Un programme plus complexe
+
+Voyons voir l'intérêt de la parallélisation sur une tâche plus complexe: une régression linéaire par groupe. Prenons un *dataframe* plus petit:
 
 ```{r}
 df <- data.frame(
@@ -279,6 +335,18 @@ df_list <- split(df,df$z)
 
 Les deux méthodes en compétition sont les suivantes:
 
+1. Une approche `tidyverse` invoquant la fonction `dplyr::do` puis ` tidyr::unnest`
+2. Une approche parallélisée
+
+Le but est de ressortir les coefficients, pas l'ensemble des résultats fournis par la fonction `lm`
+
+**Exercice** : Vous pouvez essayer de coder l'approche `tidyverse` si vous êtes à l'aise avec la syntaxe:
+
+* Grouper les données avec la fonction `z`
+* Utiliser `dplyr::do` et `coef` pour retourner les coefficients d'une régression linéaire par groupe
+* Utiliser `tidyr::unnest` pour retourner les données sous forme de `data.frame` 
+
+<div class="fold s">
 ```{r}
 profvis::profvis({
   import::from("magrittr","%>%")
@@ -287,8 +355,14 @@ profvis::profvis({
     tidyr::unnest()
 })
 ```
+</div>
 
-```{r}
+Cette fois, dans le coeur du `%dopar%`, vous pouvez écrire `return(c(unique(g$z), coef(lm(y ~x, data = g))))`.
+
+**Exercice**: Essayez d'écrire le programme parallélisé équivalent:
+
+<div class="fold s">
+```{r, eval = FALSE}
 profvis::profvis({
   # CLUSTER INITIALIZATION  
   cl <- parallel::makeCluster(parallel::detectCores()-1,
@@ -303,8 +377,6 @@ profvis::profvis({
                              .multicombine = TRUE,
                              .maxcombine = length(df_list),
                              .options.snow=opts
-                             #                       .export = c("descript"),
-                             #                       .packages = c("dplyr")
   ) %dopar% {
     return(c(unique(g$z), coef(lm(y ~x, data = g))))
   }
@@ -315,35 +387,225 @@ profvis::profvis({
   output <- do.call(rbind, output)
 })
 ```
+</div>
 
-Cette fois, la solution parallélisée est légèrement plus rapide et demande 2000 fois moins de mémoire. Cela illustre bien la manière dont l'approche divide and conquer peut aider en cas de traitements gourmands en RAM à limiter l'inflation
-
-
-## Export de dépendances
-
-The solution, which worked for me, was using additional loop's parameters (.export and .packages) and pass the function and package names explicitly.
-
-setting .combine parameter.
-
-
+```{r}
+profvis::profvis({
   # CLUSTER INITIALIZATION  
   cl <- parallel::makeCluster(parallel::detectCores()-1,
                               outfile = "")
   doSNOW::registerDoSNOW(cl)
   
-  pb <- txtProgressBar(max = length(liste_tranche), style = 3)
-  progress <- function(n) setTxtProgressBar(pb, n)
-  opts <- list(progress = progress)
-  
-  
-  df <- foreach::foreach(g = liste_tranche, .combine = "list",
-                         .multicombine = TRUE,
-                         .maxcombine = length(liste_tranche),
-                         .options.snow=opts,
-                         .export = c("descript"),
-                         .packages = c("dplyr")) %dopar% {
-                           referent_actif_groupe(g, descript)
-                         }
+  output <- foreach::foreach(g = df_list, .combine = "list",
+                             .multicombine = TRUE,
+                             .maxcombine = length(df_list) ) %dopar% {
+    return(c(unique(g$z), coef(lm(y ~x, data = g))))
+  }
   
   # CLOSE CLUSTERS  
   parallel::stopCluster(cl)
+  
+  output <- do.call(rbind, output)
+})
+```
+
+
+Cette fois, la solution parallélisée est légèrement plus rapide et demande 2000 fois moins de mémoire. Cela illustre bien la manière dont l'approche *divide and conquer* peut aider en cas de traitements gourmands à limiter l'inflation des besoins en RAM. 
+
+
+## Export de dépendances et de variables
+
+Les processus esclaves que l'on a, jusqu'à présent, initialisés, sont très parcimonieux: il s'agit de réplication d'une session R base, sans dépendance externe ou variable autre que la liste fournie en input). A l'appel précédent, on peut ajouter les arguments suivants:
+
+* `.packages`: liste de packages qu'il est nécessaire de fournir aux processus esclaves
+* `.export`: objets de l'environnement de la session maître qui doivent être mis à disposition des sessions esclaves
+
+Soit, par exemple, la fonction suivante, qui ajoute une étape nécessitant `dplyr`, à l'approche précédente :
+
+```{r}
+#' Create a new random variable and perform linear regression
+#' 
+#' @param df Dataframe
+#' @return Coefficients from \code{lm} function
+
+do_stuff <- function(df){
+  df2 <- df %>% dplyr::mutate(x2 = x + runif(nrow(df)))
+  return(df2)
+}
+
+
+```
+
+**Exercice**:
+
+On reprend l'exercice précédent mais remplace la formule par `Y ~ x+x2` après avoir créé `x2`
+
+1. Ecrire la version séquentielle avec le `tidyverse`
+2. Ecrire la version parallélisée. Pour gagner du temps de calcul avec la version parallélisée, vous pouvez retirer la barre de progrès. N'oubliez pas les arguments `.export` (pour `do_stuff`) et `.packages` (pour `dplyr`).
+3. Faire un profiling des deux solutions
+
+La solution pour la version séquentielle avec le `tidyverse` ci-dessous:
+
+<div class="fold s">
+```{r}
+profvis::profvis({
+  import::from("magrittr","%>%")
+  output <- df %>%
+    dplyr::mutate(x2 = x + runif(nrow(df))) %>%
+    dplyr::group_by(z) %>%
+    dplyr::do(ols = coef(lm(y ~x + x2, data = .))) %>%
+    tidyr::unnest()
+})
+```
+</div>
+
+La solution pour la version parallélisée:
+
+```{r, warning=FALSE}
+profvis::profvis({
+  # CLUSTER INITIALIZATION  
+  cl <- parallel::makeCluster(parallel::detectCores()-1,
+                              outfile = "")
+  doSNOW::registerDoSNOW(cl)
+  
+  output <- foreach::foreach(g = df_list, .combine = "list",
+                             .multicombine = TRUE,
+                             .maxcombine = length(df_list),
+                             .export = c("do_stuff"),
+                             .packages = c("dplyr")
+  ) %dopar% {
+    g2 <- do_stuff(g)
+    return(c(unique(g2$z), coef(lm(y ~x + x2, data = g2))))
+  }
+  
+  # CLOSE CLUSTERS  
+  parallel::stopCluster(cl)
+  
+  output <- do.call(rbind, output)
+})
+```
+
+La solution parallélisée est légèrement plus lente (moins de temps de calcul mais un coût fixe lié à l'initialisation des clusters). En revanche, encore une fois, elle est beaucoup moins gourmande en mémoire
+
+# Application: bootstrap
+
+## Cadre
+
+L'objectif de cette partie est d'étendre les régressions par groupe dans un cadre de bootstrap. Cela prendra la forme suivante, en supposant qu'on dispose de *N* observations :
+
+
+1. On tire aléatoirement, avec remise, *N* observations
+2. On effectue une régression linéaire pour ressortir la valeur des coefficients sur cet échantillon aléatoire
+3. On réplique *K* fois les étapes 1 et 2. On obtient alors une suite de coefficients $(\beta_k)_{\{k _in [1,K]\}}$
+
+Ici, on va prendre $K=100$. Nous ajoutons à ce cas d'école le fait que les régressions linéaires sont effectuées par groupe. 
+
+
+Nous avons deux possibilités de paralléliser:
+
+* par groupe: les groupes étant indépendants, on pourrait effectuer séquentiellement les $K$ itérations du bootstrap
+* par itération: on effectue de manière parallèle les itérations et chaque coefficient de groupe est traité séquentiellement ou simultanément
+
+
+On privilégie la parallélisation par itération avec, pour chaque groupe, un coefficient. C'est une approche beaucoup plus appropriée pour la parallélisation. 
+
+Pour que chaque itération soit plus rapide, nous réduisons la taille des données à 1000 lignes et le nombre de groupes à 5. 
+
+```{r}
+df <- data.frame(
+  x = rnorm(10e4),
+  z = factor(sample(1:5, size = 10e4, replace = TRUE))
+)
+df$y <- df$x + rnorm(10e4)
+head(df)
+```
+
+## Approche séquentielle
+
+**Exercice: **
+
+1. Créez une fonction `bootstrap_sequential` qui retourne le coefficient d'une régression linéaire. La formule prend la forme `y ~ x:z` qui permet de retourner les coefficients propres à chaque groupe en un seul appel de fonction
+2. Appeler la fonction `bootstrap_sequential` 100 fois avec `lapply`
+3. Profiler ceci
+
+<div class="fold s">
+```{r}
+bootstrap_sequential <- function(df){
+  data <- df[sample(1:nrow(df), size = nrow(df), replace = TRUE),]  
+  reg_group <- coef(lm("y ~ x:z", data = data))
+  return(reg_group)
+}
+
+profvis::profvis({
+  approche_sequentielle <- lapply(1:100, function(k) bootstrap_sequential(df))
+  approche_sequentielle <- do.call(rbind, approche_sequentielle)
+})
+
+head(approche_sequentielle)
+```
+</div>
+
+Comme on peut le voir sur le graphique interactif, une approche séquentielle est:
+
+* Très gourmande en mémoire
+* Très inefficiente: on reproduit fréquemment la même opération
+
+
+## Approche parallélisée
+
+**Exercice**:
+
+1. Appelez de manière parallèle `bootstrap_sequential` (vous pouvez utiliser `.combine = "rbind"` pour vous épargner l'appel à `do.call`)
+2. Profilez
+
+<div class="fold s">
+```{r, warning=FALSE}
+bootstrap_sequential <- function(df){
+  data <- df[sample(1:nrow(df), size = nrow(df), replace = TRUE),]  
+  reg_group <- coef(lm("y ~ x:z", data = data))
+  return(reg_group)
+}
+
+profvis::profvis({
+# CLUSTER INITIALIZATION  
+cl <- parallel::makeCluster(parallel::detectCores()-1,
+                            outfile = "")
+doSNOW::registerDoSNOW(cl)
+
+approche_parallel <- foreach::foreach(k = 1:100, .combine = "rbind",
+                           .multicombine = TRUE,
+                           .maxcombine = 100,
+                           .export = c("bootstrap_sequential", "df")
+) %dopar% {
+  return(bootstrap_sequential(df))
+}
+
+# CLOSE CLUSTERS  
+parallel::stopCluster(cl)
+})
+
+head(approche_parallel)
+```
+</div>
+
+Le résultat est en faveur de l'approche parallélisée:
+
+* *Mémoire*: 2000 fois moins de mémoire
+* *CPU*: 50\% plus rapide
+
+<!-----------
+
+Parallel computing is ideal for **Monte-Carlo simulations**. Each core independently simulates a realisation from the model. 
+
+Many statistical and machine learning applications rely on pseudo-random numbers for things like
+sampling from distributions and stochastic optimization. When child processes are spawned to compute in parallel, care needs to be taken to ensure random number streams behave as expected. This is particularly true for bootstrap inference, Monte Carlo simulations, and other applications where it is important that iterations are independent. Care is also needed to ensure results can be reliably reproduced using set.seed().
+
+MCMC is by its very nature a serial algorithm — each iteration depends on the results of the last iteration. It is, therefore, rather difficult to parallelize MCMC code so that a single chain will run more quickly by splitting the work along multiple processors.
+
+A more straightforward way to parallelize MCMC code is to run multiple chains on multiple processors. Since the chains are independent of each other, it is mainly an issue of bookkeeping to distribute the work among several processing units.
+----------->
+
+# Conclusion
+
+Ouverture sur: facilité à faire du calcul parallèle en R (par rapport à d'autres langages) mais les limites (parfois mieux d'avoir un seul coeur bien utilisé)
+
