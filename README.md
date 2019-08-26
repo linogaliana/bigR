@@ -12,10 +12,10 @@ dédiée à la
 
 Ebauche de plan:
 
-1.  Comprendre le fonctionnement de R
-2.  Optimisation: parallélisation
+1.  Introduction au fonctionnement de R et à l’optimisation
+2.  Parallélisation
 3.  `data.table`
-4.  Rcpp
+4.  `Rcpp`
 5.  Approches out-of-memory
 
 Intégration continue ne fonctionne pas encore car `rocker` fournit une
