@@ -13,12 +13,14 @@ dédiée à la
 Ebauche de plan:
 
 1.  Comprendre le fonctionnement de R
-2.  `data.table`
-3.  Rcpp
-4.  Optimisation: parallélisation
-5.  Sparklyr ?
+2.  Optimisation: parallélisation
+3.  `data.table`
+4.  Rcpp
+5.  Approches out-of-memory
 
-Pour télécharger la dernière version du support, [cliquer sur ce
+Intégration continue ne fonctionne pas encore car `rocker` fournit une
+architecture monocoeur. Quand l’intégration continue sera pleinement
+fonctionnelle, les supports seront accessibles sur [ce
 lien](https://gitlab.com/linogaliana/bigr/-/jobs/artifacts/master/download?job=article)
 et sur
 [celui-ci](https://gitlab.com/linogaliana/bigr/-/jobs/artifacts/master/download?job=article2)..
