@@ -79,7 +79,7 @@ L'utilisation de la CPU et de la RAM peut être contrôlée en temps réel avec 
 
 ## Microbenchmark
 
-La fonction `system.time()` est la manière la plus simple de mesurer le temps d'éxécution d'une ou plusieurs fonctions. Cependant, le temps d'exécution observé n'est qu'une réalisation d'une variable aléatoire et dépend de l'utilisation, à l'instant *t*, des ressources d'un ordinateur. Pour obtenir une image plus fidèle de la vitesse d'exécution d'une fonction, et être en mesure de comparer plus pleinement des temps d'exécution, le package `microbenchmark` est très pratique. Comme les fonctions évaluées sont répétées de nombreuses fois (par défaut 100), on utilise `microbenchmark` pour des opérations rapides (quitte à utiliser les fonctions évaluées sur un échantillon plus petit de données). 
+La fonction `system.time()` est la manière la plus simple de mesurer le temps d'exécution d'une ou plusieurs fonctions. Cependant, le temps d'exécution observé n'est qu'une réalisation d'une variable aléatoire et dépend de l'utilisation, à l'instant *t*, des ressources d'un ordinateur. Pour obtenir une image plus fidèle de la vitesse d'exécution d'une fonction, et être en mesure de comparer de manière plus adéquate des temps d'exécution, le package `microbenchmark` est très pratique. Comme les fonctions évaluées sont répétées de nombreuses fois (par défaut 100), on utilise `microbenchmark` pour des opérations rapides (quitte à utiliser les fonctions évaluées sur un échantillon plus petit de données). 
 
 Par exemple, si on désire évaluer la performance des moyennes par groupe avec `dplyr`, `data.table` et en base `R`
 
@@ -101,7 +101,7 @@ df <- data.frame(x = rnorm(10e5),
                             replace = TRUE))
 # On crée son alter-ego data.table pour éviter de faire la conversion N fois
 dt <- data.table::data.table(df)
-# On indexe le data.table pour tirer pleinement parti du package (cf. chapitre data.table)
+# On indexe le data.table pour tirer profiter pleinement de la performance du package (cf. chapitre data.table)
 data.table::setkeyv(dt,"y")
 
 
@@ -118,18 +118,16 @@ print(micro)
 ggplot2::autoplot(micro)
 ```
 
-Cela nous permet de voir que l'approche `data.table` est plus rapide (l'ordre de grandeur est ici de l'ordre de 1 pour 4 par rapport à `dplyr` et 1 pour 40 par rapport à la solution R base.)
+Nous reviendrons sur ce code dans le chapitre `data.table`. Ce benchmark nous indique déjà que l'approche `data.table` est plus rapide (l'ordre de grandeur est ici de l'ordre de 1 pour 4 par rapport à `dplyr` et 1 pour 40 par rapport à la solution R base.)
 
 ## Profiling
 
-Le *profiling* consiste à contrôler le temps d'exécution et l'usage mémoire d'une série de commandes. C'est une approche particulièrement bien adaptée à des codes modulaires (découpés sous formes de *chunks*) puisqu'on peut vraiment contrôler les parties de code les plus gourmandes en temps ou en mémoire. 
+Le *profiling* consiste à contrôler le temps d'exécution et l'usage mémoire d'une série de commandes. C'est une approche particulièrement bien adaptée à des codes modulaires (découpés sous formes de *chunks*) puisqu'on peut vraiment contrôler les parties de code les plus gourmandes en temps ou en mémoire. Nous aurons l'occasion, dans les exercices, d'appliquer plusieurs fois la fonction `profvis` du package du même nom 
 
-
-```{r, eval = FALSE}
+```{r, eval = TRUE}
 profvis::profvis(expr = {
   
   # Stage 1: load packages
-  # library("rnoaa") # not necessary as data pre-saved
   library("magrittr")
   
   # Stage 2: load and process data
@@ -150,7 +148,7 @@ profvis::profvis(expr = {
   p <- ggplot2::ggplot(df,
                   ggplot2::aes(x = factor(y), y = x)
                   ) +
-    ggplot2::geom_boxplot(aes(colour = factor(y))) +
+    ggplot2::geom_boxplot(ggplot2::aes(colour = factor(y))) +
     ggplot2::theme_bw()
   
   print(p)
@@ -160,10 +158,10 @@ profvis::profvis(expr = {
 
 ```
 
-Avec cet exemple, on voit que la majorité du temps est passée dans la représentation graphique, étape la plus longue et la plus exigente en mémoire. 
+Ce package offre une belle représentation du temps passé et des usages mémoires pour chaque bout de programme. C'est particulièrement utile pour déterminer les goulets d'étranglement, et donc les morceaux à optimiser, d'un programme. Avec cet exemple, on voit que la majorité du temps est passée dans la représentation graphique, étape la plus longue et la plus exigente en mémoire. 
 
 
-## Exercice
+**Exercice:**
 
 Faire un `microbenchmark` d'une somme cumulative avec:
 
@@ -171,8 +169,10 @@ Faire un `microbenchmark` d'une somme cumulative avec:
 2. Une solution utilisant `sapply`
 3. La fonction `cumsum`
 
+Vous pouvez créer un vecteur `x <- seq_len(100)` pour faire ce test
+
 ```{r}
-x = 1:100 # initiate vector to cumulatively sum
+x <- seq_len(100) # initiate vector to cumulatively sum
 
 # Method 1: with a for loop (10 lines)
 cs_for = function(x){
@@ -197,6 +197,8 @@ print(
 )
 
 ```
+
+Vous pouvez apprécier la différence de vitesse entre un code vectorisé (`cumsum`) et des approches plus artisanales, qui sont également moins lisibles. 
 
 # Comprendre les ordinateurs pour comprendre `R`
 
