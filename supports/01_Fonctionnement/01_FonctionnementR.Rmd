@@ -8,34 +8,14 @@ output:
 bibliography: ../bibliography.bib
 ---
 
+<script src="../js/hideOutput.js"></script>
+
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::knit_engines$set(python = reticulate::eng_python)
 ```
 
-```{r check reticulate}
-library(reticulate)
-```
-
-```{r, echo=FALSE}
-# if (Sys.getenv("LOCAL")==""){
-#   python_path <- list.dirs("/usr/local/", full.names = FALSE)
-#   python_path <- python_path[startsWith(python_path,"python")]
-#   reticulate::use_python(paste0("/usr/local/", python_path, "/bin/python3"))
-#   # knitr::opts_chunk$set(engine.path = list(python = 'C:/Users/W3CRK9/AppData/Local/Continuum/anaconda3/envs/r-reticulate'))
-# }
-
-if (Sys.getenv("LOCAL")==""){
-  Sys.setenv(RETICULATE_PYTHON = "/opt/conda/envs/Reticulate/bin")
-  use_condaenv("Reticulate")
-  # print(reticulate::py_config())
-  # conda_create("r-reticulate")
-# install SciPy
-  # conda_install("r-reticulate", "scipy")
-
-  reticulate::conda_install("Reticulate", "scipy")
-}
-```
 
 >  Premature optimization is the root of all evil (or at least most of it) in programming.
 >
@@ -43,17 +23,46 @@ if (Sys.getenv("LOCAL")==""){
 
 # Introduction
 
-L'objectif général du cours est d'offrir une introduction aux possibilités qu'offre `R` pour faire des calculs lourds et lire des bases de données volumineuses. Les deux principales ressources disponibles sur le sujet sont les ouvrages *Efficient R Programming* [@gillespie2016efficient] et *Advanced R* [@wickham2014advanced]^[Dans ce cours, on adoptera la vision de l'efficience au sens d'efficience algorithmique, i.e. la vitesse à laquelle un programme s'exécute et les ressources nécessaires pour l'accomplissement de celui-ci. Nous parlerons peu de la notion d'efficacité de programmation: quantité de travail utile qu'un programmeur peut réaliser par unité de temps. A cet égard, des astuces et règles utiles sont présentées dans la Formation *travail collaboratif sous R* et dans le livre de @gillespie2016efficient].
+L'objectif général du cours est d'offrir une introduction aux possibilités qu'offre `R` pour faire des calculs lourds et lire des bases de données volumineuses. Les deux principales ressources disponibles sur le sujet sont les ouvrages *Efficient R Programming* [@gillespie2016efficient] et *Advanced R* [@wickham2014advanced]^[Dans ce cours, on adoptera la vision de l'efficience au sens d'efficience algorithmique, i.e. la vitesse à laquelle un programme s'exécute et les ressources nécessaires pour l'accomplissement de celui-ci. Nous parlerons peu de la notion d'efficacité de programmation: quantité de travail utile qu'un programmeur peut réaliser par unité de temps. A cet égard, des astuces et règles utiles sont présentées dans la Formation *travail collaboratif sous R* et dans le livre de @gillespie2016efficient]. Cependant, ce cours approfondira des aspects superficiels de ces livres, notamment la puissance du package `data.table`.
 
-Avant de chercher à optimiser, le premier réflexe à adopter est de bien structurer le problème que l'on vise à résoudre et sélectionner le format de données et les *packages* les plus adéquats. `R` étant un langage très malléable, il existe généralement plusieurs manières de résoudre un problème: avoir un code efficace nécessite en premier lieu de choisir le meilleur outil disponible en `R`. Par exemple, si on doit passer par une boucle, il vaut mieux choisir rapidement de faire du `Rcpp` plutôt qu'écrire une boucle `R` qu'on accélèrera par la suite. Un des objectifs de ce cours est de faire connaître les outils les plus adéquats pour des problèmes génériques. Plutôt qu'essayer de paralléliser sur 16 coeurs, il est parfois préférable de bien en utiliser un seul. 
+Avant de chercher à optimiser, le premier réflexe à adopter est de bien structurer le problème que l'on vise à résoudre et sélectionner le format de données et les *packages* les plus adéquats. `R` étant un langage très malléable, il existe généralement plusieurs manières de résoudre un problème: avoir un code efficace nécessite en premier lieu de choisir le meilleur outil disponible en `R`. Par exemple, si on doit passer par une boucle, il vaut mieux choisir rapidement de faire du `Rcpp` plutôt qu'écrire une boucle `R` qu'on accélèrera par la suite. Un des objectifs de ce cours est de faire connaître les outils les plus adéquats pour des problèmes génériques. Plutôt qu'essayer de paralléliser sur 16 coeurs, il est parfois préférable de bien en utiliser un seul. Casser des cailloux à 16 est mieux que tout seul mais utiliser un outil adapté fait souvent gagner plus de temps.
 
-Quand on se préoccupe d'efficacité ou de gestion de mémoire, le principal risque est la dette technique: un code pas très bon pour lequel on reporte le moment de l'améliorer. Il s'agit, par exemple, d'un code qui utilise des boucles au lieu d'une opération vectorisée. Bien réfléchir à la structure du programme, à son découpage en parties homogènes, au format de données et aux packages mobilisables, est fondamental.
+Quand on se préoccupe d'efficacité ou de gestion de mémoire, le principal risque est la **dette technique**: un code pas très bon dont on reporte leà plus tard le moment de l'améliorer. Il s'agit, par exemple, d'un code qui utilise des boucles au lieu d'une opération vectorisée. Bien réfléchir à la structure du programme, à son découpage en parties homogènes, au format de données et aux packages mobilisables, est fondamental. C'est, probablement, le meilleur réflexe avant de chercher à optimiser.
 
-Alors que le volume de données disponibles et pouvant être combinées est croissant, le ralentissement des progrès technologiques dans l'industrie des microprocesseurs (ralentissement de la loi de Moore^[Selon cette loi, le nombre de transistors composant un micro-processeur double tous les 18 mois à coût constant. Cela implique une capacité de calcul croissant à une grande vitesse. Cette observation empirique a été globalement respectée jusqu'en 2016, date depuis laquelle les progrès ont marqué le pas.]) justifie l'utilisation croissante de capacités de calculs parallèles. L'exploitation des systèmes multi-coeurs, qui sont maintenant communs, permet de limiter l'effet limitant du ralentissement de la loi de Moore sur les capacités de traitement. 
+Alors que le volume de données disponibles et pouvant être combinées est croissant, le ralentissement des progrès technologiques dans l'industrie des microprocesseurs (ralentissement de la <span style="color:royalblue">**loi de Moore</span>**^[Selon cette loi, le nombre de transistors composant un micro-processeur double tous les 18 mois à coût constant. Cela implique une capacité de calcul croissant à une grande vitesse. Cette observation empirique a été globalement respectée jusqu'en 2016, date depuis laquelle les progrès ont marqué le pas.]) justifie l'utilisation croissante de capacités de calculs parallèles. L'exploitation des systèmes multi-coeurs, qui sont maintenant communs, permet de s'abstraire, partiellement, de l'effet limitant du ralentissement de la loi de Moore sur les capacités de traitement. 
 
-# Plan du cours
+
+## Plan du cours
 
 La première étape nécessaire pour être en mesure d'être efficace en `R` et de comprendre le fonctionnement du langage. Comprendre la manière dont `R` fonctionne permet de comprendre l'intérêt de la vectorisation ainsi que la manière dont la mémoire fonctionne en `R`. Ce détour par le language de base permettra de mieux comprendre les raisons pour lesquelles `R` est un langage plus lent qu'un langage compilé et limité lorsqu'il est question de données volumineuses.
+
+## Packages nécessaires
+
+Les packages que nous utiliserons principalement sont les suivants:
+
+* `microbenchmark`
+* `profvis`
+* `foreach`
+* `Rcpp`
+* `data.table`
+
+Pour pouvoir faire le comparatif `R`-`python` que vous pouvez retrouver dans cette leçon, il est nécessaire d'utiliser le package `reticulate` qui permet de faire interagir, dans une session `R` ou un `Rmarkdown`, les objets `R` et `python`. Si vous désirez exécuter les morceaux de code appopriés, qui sont là à des fins d'exemple, vous pouvez exécuter les commandes suivantes. Cela suppose néanmoins qu'une installation de `python` se trouve au chemin donné à la commande `Sys.setenv(RETICULATE_PYTHON = ..)`^[La manière la plus simple de disposer de `python` est d'utiliser [anaconda](https://www.anaconda.com/distribution/). Le container `pocker` que j'ai créé pour pouvoir utliser l'intégration continue avec `R` et `Python` pour compiler automatiquement ce `markdown` adopte cette approche]. 
+
+<div class="fold s">
+```{r check reticulate, echo=TRUE}
+library(reticulate)
+
+if (Sys.getenv("LOCAL")==""){
+  # CHANGE HERE TO YOUR PATH
+  Sys.setenv(RETICULATE_PYTHON = "/opt/conda/envs/Reticulate/bin")
+  
+  # CREATE A CONDA ENVIRONMENT JUST FOR RETICULATE
+  use_condaenv("Reticulate")
+
+  reticulate::conda_install("Reticulate", "scipy")
+}
+```
+</div>
 
 
 # Outils utiles pour mesurer l'exécution de fonctions
@@ -63,9 +72,9 @@ Nous allons utiliser deux types d'approches pour minuter la vitesse d'exécution
 * **Benchmarking**: test de performance basé sur la répétition d'opérations
 * **Profiling**: exécution d'une série de commande afin de déterminer les goulets d'étranglement
 
-La première approche est généralement suivie lorsqu'on veut optimiser une opération pour laquelle plusieurs méthodes existent. La seconde approche permet de cibler les étapes d'un programme à cibler pour accélérer les calculs ou réduire l'utilisation de la mémoire.
+On utilise généralement la première approche lorsqu'on veut optimiser une opération pour laquelle plusieurs méthodes existent. La seconde approche permet de cibler les étapes d'un programme à cibler pour accélérer les calculs ou réduire l'utilisation de la mémoire.
 
-Sur Linux, la commande `htop` permet de voir, en temps réel, l'utilisation des différents coeurs d'un ordinateur. Sur Windows, le gestionnaire des tâches permet de contrôle la CPU et la RAM utilisés.
+L'utilisation de la CPU et de la RAM peut être contrôlée en temps réel avec le gestionnaire des tâches en Windows ou la commande `htop` sur `Linux`. Avec ces outils, on peut contrôler les processus en cours, l'utilisation des différents coeurs d'un ordinateur, la RAM utilisée et celle disponible. 
 
 
 ## Microbenchmark
