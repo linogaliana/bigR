@@ -207,48 +207,46 @@ machine traitant des informations et capable en principe de prendre comme donné
 
 ## Principes généraux
 
-Les deux principaux constituants d’un ordinateur sont la mémoire principale et le processeur ou CPU (Central Processing Unit). La mémoire principale permet de stocker de l’information (programmes et données), tandis que le processeur exécute pas à pas les instructions composant les programmes.
+Les deux principaux constituants d’un ordinateur sont la **mémoire principale** et le **processeur** ou **CPU** (Central Processing Unit). La mémoire principale permet de stocker de l’information (programmes et données), tandis que le processeur exécute pas à pas les instructions composant les programmes.
 
 
 L'interaction entre les différentes composantes d'un ordinateur suit l’architecture de Von-Neumann:
 
-1. Le processeur (CPU pour Central Processing Unit) est conceptuellement décomposé en:
-    + une unitée de contrôle (UC): séquence les opérations
-    + une unitée de calcul arithmétique et logique (UAL): exécution des opérations de base
-    + un registre
-2. La mémoire: contient à la fois les données et le programme
+1. Le <span style="color:royalblue">**processeur (CPU pour Central Processing Unit)**</span> est conceptuellement décomposé en:
+    + une *unitée de contrôle (UC)*: séquence les opérations
+    + une *unitée de calcul arithmétique et logique (UAL)*: exécution des opérations de base
+    + un *registre*
+2. La <span style="color:royalblue">**mémoire**</span>: contient à la fois les données et le programme
 exécuté par l’unité de contrôle
-    + Mémoire vive ou volatile (RAM pour random access memory): contient programmes et données en cours de traitement
-    + Mémoire permanente (ROM pour read only memory): stocke
-programmes et données de base de la machine
-3. Dispositifs d'entrée-sortie (input/output): périphériques qui permettent de communiquer avec le monde extérieur
-4. Canaux de communication (les bus) entre la mémoire, le processeur et les périphériques
+    + *Mémoire vive ou volatile (RAM pour random access memory)*: contient programmes et données en cours de traitement
+    + *Mémoire permanente (ROM pour read only memory)*: stocke programmes et données de base de la machine
+3. <span style="color:royalblue">**Dispositifs d'entrée-sortie (input/output)**</span>: périphériques qui permettent de communiquer avec le monde extérieur
+4. <span style="color:royalblue">**Canaux de communication (les bus)**</span> entre la mémoire, le processeur et les périphériques
 
 
 ![](./pics/architecture_von_neumann.png)
 
-La carte mère est le support physique permettant la coordination de l’ensemble des éléments intervenant dans le fonctionnement d’un ordinateur.
+La **carte mère** est le support physique permettant la coordination de l’ensemble des éléments intervenant dans le fonctionnement d’un ordinateur.
 
 Si l’architecture de Von-Neumann se caractérise par sa grande souplesse, elle présente en revanche trois gros inconvénients :
 
-1. Une exécution séquentielle. L’architecture de Von Neumann impose une exécution séquentielle des instructions. Avec ce modèle, il n’est donc pas possible d’effectuer différents travaux en parallèle.
-2. Un goulet d’étranglement. Alors que le microprocesseur peut exécuter des instructions très rapidement, celles-ci sont de toute façon ralenties par la vitesse de transfert des informations dans les bus de communication.
-3. Faible robustesse. Le fait que les données et les programmes soient mélangés engendre une fragilité du modéle de Von-Neumann : si une donnée est enregistrée à l’emplacement d’un programme, le comportement de l’ordinateur peut devenir complètement incohérent.
+1. Une *exécution séquentielle*. L’architecture de Von Neumann impose une exécution séquentielle des instructions. Avec ce modèle, il n’est donc pas possible d’effectuer différents travaux en parallèle sur un même processus.
+2. Un *goulet d’étranglement*. Alors que le microprocesseur peut exécuter des instructions très rapidement, celles-ci sont de toute façon ralenties par la vitesse de transfert des informations dans les bus de communication.
+3. *Faible robustesse*. Le fait que les données et les programmes soient mélangés engendre une fragilité du modéle de Von-Neumann : si une donnée est enregistrée à l’emplacement d’un programme, le comportement de l’ordinateur peut devenir complètement incohérent.
 
-Le système d'exploitation donne l'illusion que de nombreux processus peuvent être exécutés en même temps. Cela provient de la conjonction de deux effets : d’une part, les instructions exécutées par l’ordinateur sont extrêmement rapides (de l’ordre de quelques dizaines de millisecondes) et d’autre part, le système d’exploitation utilise les temps d’attente dans l’exécution d’une tâche pour orienter les ressources de l’ordinateur (micro-processeur + RAM...) vers l’exécution d’une autre tâche. Le fait que la plupart des ordinateurs soient maintenant dotés de plusieurs processeurs permet, si les applications sont adaptées, d’exécuter réellement plusieurs tâches simultanément. Malgré tout, le nombre d’instructions effectuées simultanément reste habituellement très inférieur au nombre d’applications en fonctionnement simultané.
+Le **système d'exploitation** dirige l'utilisation des ressources d'un ordinateur. Cela donne l'illusion que de nombreux processus peuvent être exécutés en même temps. Cela provient de la conjonction de deux effets : d’une part, les instructions exécutées par l’ordinateur sont extrêmement rapides (de l’ordre de quelques dizaines de millisecondes) et d’autre part, le système d’exploitation utilise les temps d’attente dans l’exécution d’une tâche pour orienter les ressources de l’ordinateur (micro-processeur + RAM...) vers l’exécution d’une autre tâche. Le fait que la plupart des ordinateurs soient maintenant dotés de plusieurs processeurs permet, si les applications sont adaptées, d’exécuter réellement plusieurs tâches simultanément. Malgré tout, le nombre d’instructions effectuées simultanément reste habituellement très inférieur au nombre d’applications en fonctionnement simultané.
 
 ### Langage interprété vs compilé
 
-`R` est un langage interprété, par opposition aux langages compilés (`C++` par exemple). Par rapport à l’interpréteur, le compilateur présente l’inconvénient de retarder l’exécution d’un programme mais une fois compilé, le fichier exécutable obtenu est particulièrement rapide (moins de surcouche vers le langage machine).
+`R` est un langage interprété (comme `python`), par opposition aux langages compilés (`C++` par exemple). Par rapport à l’interpréteur, le compilateur présente l’inconvénient de retarder l’exécution d’un programme mais une fois compilé, le fichier exécutable obtenu est particulièrement rapide (moins de surcouche vers le langage machine).
 
-Certains packages (par exemple `compiler`) proposent d'accélérer les traitements en transformant des exécutions interprétées (du code `R` standard) en instructions compilées (`bytecode`). C'est une méthode, assez simple puisque c'est le package qui gère cette traduction, pour accélérer certains programmes. 
+Certains packages (par exemple `compiler`) proposent d'accélérer les traitements en transformant des exécutions interprétées (du code `R` standard) en instructions compilées (`bytecode`). C'est une méthode, assez simple puisque c'est le package qui gère cette traduction, pour accélérer certains programmes. Depuis `R 3.5.0` (avril 2018), les fonctions intégrées à des packages sont automatiquement compilées, ce qui accélère les temps d'exécution sans effort de programmation. 
 
 
 ## Le processeur (CPU)
 
 
-Le processeur (ou micro-processeur) est considéré comme le coeur de l’ordinateur. C’est lui qui attribut des tâches simples aux périphériques et à la RAM tandis qu’il exécute les tâches les plus compliquées. Il est responsable de l’exécution d’un programme. Le processeur est un circuit éléctronique complexe (circuit intégré) qui exécute chaque instruction très rapidement, en quelques cycles d’horloges. Toute l’activité de l’ordinateur est cadencée par une horloge unique, de façon à ce que tous les circuits électroniques
-travaillent tous ensemble de façon synchronisée. La fréquence de cette horloge s’exprime en MHz (millions de cyles par seconde) ou GHz (milliards de cycles par secondes). Par exemple, le processeur *Intel Core i5-6300U* qui équipe les postes nomades INSEE possède une horloge cadencée à 2,40 GHz.
+Le processeur (ou micro-processeur) est considéré comme le coeur de l’ordinateur. C’est lui qui attribut des tâches simples aux périphériques et à la RAM tandis qu’il exécute les tâches les plus compliquées. Il est responsable de l’exécution d’un programme. Le processeur est un circuit éléctronique complexe (circuit intégré) qui exécute chaque instruction très rapidement, en quelques **cycles d’horloges**. Toute l’activité de l’ordinateur est cadencée par une horloge unique, de façon à ce que tous les circuits électroniques travaillent tous ensemble de façon synchronisée. La fréquence de cette horloge s’exprime en `MHz` (millions de cyles par seconde) ou `GHz` (milliards de cycles par secondes). Par exemple, le processeur *Intel Core i5-6300U* qui équipe les postes nomades INSEE possède une horloge cadencée à 2,40 GHz.
 
 Un processeur est défini, entre autres, par :
 
@@ -286,24 +284,25 @@ quatre étapes lors du traitement des instructions (architecture de Von Neumann)
 
 ## La mémoire vive ou RAM (random access memory)
 
-La mémoire est divisée en bytes qui sont des emplacements (des cases mémoires contiguës) de taille fixe utilisés pour stocker instructions et données. En principe, la taille d’un emplacement mémoire pourrait être quelconque ; en fait, la plupart des ordinateurs en service aujourd’hui utilisent des emplacements mémoire d’un octet (soit 8 bits)^[Aujourd'hui, les termes bytes et octets sont utilisés de manière relativement indistincte même si, conceptuellement, il s'agit de notions différentes. Le byte est le nombre de bits nécessaire pour coder un caractère. Il s'agit ainsi de la plus petite unité logique adressable par un programme sur un ordinateur. Les bytes de 8 bits se sont généralisés dans les ordinateurs modernes même si, conceptuellement, les bytes pouvaient être de longueur différente. Par le passé, les caractères ASCII dominaient l'informatique. Il s'agissait d'un ensemble de 128 caractères qui ne nécessitaient que 7 bits ($2^7=128$) mais en utilisaient 8 pour optimiser la performance. La définition d'un octet est d'être une unité composée de 8 bits. C'est la généralisation des bytes à 8 bits qui explique la correspondance entre ces deux termes. En informatique, si l'on veut explicitement désigner une quantité de huit bits, on utilise le mot octet ; tandis que si l'on veut exprimer l'unité d'adressage indépendamment du nombre de bits, on utilise le mot byte. ]. Les séquences de bytes sont elles-mêmes regroupées en mots mémoire dont la taille est déterminée par celle des registres de l'ordinateur (32 ou 64 bits)^[Les processeurs 32 bits ne peuvent normalement pas adresser plus de 4 Gio ($2^{32}$ octets) de mémoire centrale, tandis que les processeurs 64 bits peuvent en adresser 16 Eio ($2^{64}$ octets). C'est pourquoi dès qu'il y a plus de 4 Gio de RAM sur une machine, la mémoire au-delà de ce seuil ne sera directement adressable qu'en mode 64 bits].
+La mémoire est divisée en bytes qui sont des emplacements (des cases mémoires contiguës) de taille fixe utilisés pour stocker instructions et données. Il est facile de confondre les termes `bit` et `byte`: un `bit` (contraction de *binary digit*) est l'élement de base de l'ordinateur, le `byte` stocke plusieurs éléments.
+En principe, la taille d’un emplacement mémoire pourrait être quelconque ; en fait, la plupart des ordinateurs en service aujourd’hui utilisent des emplacements mémoire d’un octet (soit 8 bits)^[Aujourd'hui, les termes bytes et octets sont utilisés de manière relativement indistincte même si, conceptuellement, il s'agit de notions différentes. Le byte est le nombre de bits nécessaire pour coder un caractère. Il s'agit ainsi de la plus petite unité logique adressable par un programme sur un ordinateur. Les bytes de 8 bits se sont généralisés dans les ordinateurs modernes même si, conceptuellement, les bytes pouvaient être de longueur différente. Par le passé, les caractères ASCII dominaient l'informatique. Il s'agissait d'un ensemble de 128 caractères qui ne nécessitaient que 7 bits ($2^7=128$) mais en utilisaient 8 pour optimiser la performance. La définition d'un octet est d'être une unité composée de 8 bits. C'est la généralisation des bytes à 8 bits qui explique la correspondance entre ces deux termes. En informatique, si l'on veut explicitement désigner une quantité de huit bits, on utilise le mot octet ; tandis que si l'on veut exprimer l'unité d'adressage indépendamment du nombre de bits, on utilise le mot byte. ]. Les séquences de bytes sont elles-mêmes regroupées en mots mémoire dont la taille est déterminée par celle des registres de l'ordinateur (32 ou 64 bits)^[Les processeurs 32 bits ne peuvent normalement pas adresser plus de 4 Gio ($2^{32}$ octets) de mémoire centrale, tandis que les processeurs 64 bits peuvent en adresser 16 Eio ($2^{64}$ octets). C'est pourquoi dès qu'il y a plus de 4 Gio de RAM sur une machine, la mémoire au-delà de ce seuil ne sera directement adressable qu'en mode 64 bits].
 
 <!---Il existe au moins 3 types de mémoire vive : SD, SSD et DDR-SDRAM (d’accès plus rapide).---->
 
 
 Bit representation | Caractère
 -------------------|-----------
-01000001 | A
-01000010 | B
-01000011 | C
+01000001           | A
+01000010           | B
+01000011           | C
 
 
 
 La RAM possède les caractéristiques suivantes :
 
-1. un mot dans la mémoire peut aussi bien représenter une instruction dans un programme, qu’un entier ou une couleur selon l’interprétation que lui donne l’utilisateur.
-2. elle est inerte dans le sens où elle sert juste de support de stockage de l’information.
-3. tout mot mémoire possède une adresse (codé sous la forme d’un entier) lui permettant d’être lu rapidement par le microprocesseur.
+1. Un mot dans la mémoire peut aussi bien représenter une instruction dans un programme, qu’un entier ou une couleur selon l’interprétation que lui donne l’utilisateur.
+2. Elle est inerte dans le sens où elle sert juste de support de stockage de l’information.
+3. Tout mot mémoire possède une adresse (codé sous la forme d’un entier) lui permettant d’être lu rapidement par le microprocesseur.
 
 Lorsque la mémoire vive arrive à saturation en raison d’une utilisation instantanée intensive de l’ordinateur, une partie du disque dur peut-être utilisée par le microprocesseur : on appelle cela le *swap*. Dans ce cas, le temps d’exécution des instructions est beaucoup plus lent (de l’ordre de 1000 fois).
 
@@ -370,7 +369,7 @@ plot(res)
 
 Le poste utilisé pour les tests a des performances médianes: sans être catastrophique, il n'est pas non plus exceptionnel.
 
-# Appels de fonctions
+# Retour à `R`: appels de fonctions
 
 > To understand computations in R, two slogans are helpful:
 >
@@ -382,7 +381,7 @@ Le poste utilisé pour les tests a des performances médianes: sans être catast
 Appeler une function `R` revient en fait à appeler, de manière plus ou moins directe, un code `C` ou `Fortran` Les fonctions de base sont généralement des appels implicites à une fonction `C` sous-jacente. Par exemple, la fonction `runif()` contient une unique ligne qui est un appel à la fonction  `C_runif()`
 
 ```{r runif C call}
-runif
+body(runif)
 ```
 
 Les fonctions développées en `C++` grâce au package `Rcpp` fonctionnent de la même manière. Par exemple, la fonction que j'ai développée 
