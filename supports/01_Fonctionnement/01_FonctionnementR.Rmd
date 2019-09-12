@@ -171,6 +171,7 @@ Faire un `microbenchmark` d'une somme cumulative avec:
 
 Vous pouvez créer un vecteur `x <- seq_len(100)` pour faire ce test
 
+<div class="fold s">
 ```{r}
 x <- seq_len(100) # initiate vector to cumulatively sum
 
@@ -197,6 +198,7 @@ print(
 )
 
 ```
+</div>
 
 Vous pouvez apprécier la différence de vitesse entre un code vectorisé (`cumsum`) et des approches plus artisanales, qui sont également moins lisibles. 
 
@@ -387,12 +389,12 @@ body(runif)
 Les fonctions développées en `C++` grâce au package `Rcpp` fonctionnent de la même manière. Par exemple, la fonction que j'ai développée 
 
 ```{r}
-#capitulation::simulate_wealth_structural
+dplyr::between
 ```
 fonctionne comme un *wrapper* d'une fonction sous-jacente en `C++` qui est, elle-même, stockée dans un fichier compilé `.dll`
 
 ```{r}
-#capitulation:::`_capitulation_simulate_wealth_structural`
+dplyr:::`_dplyr_between`
 ```
 
 Pour obtenir de bonnes performances en `R`, il est important d'accéder aux routines sous-jacentes `C` ou `Fortran` le plus rapidement possible. Appeler des fonctions ayant un coût en termes de temps, il est important de minimiser, autant que possible, le nombre d'appels pour accéder aux fonctions `C` ou `Fortran`.
@@ -427,11 +429,11 @@ En soi, la boucle *for* n'est pas longue mais les appels de fonctions sont bien 
 <!---- Comme nous le montrerons par la suite, si la vectorisation n'est pas possible, il est préférable d'utiliser la fonction `lapply` que la fonction `for`.---->
 
 
-#### Exercice
+**Exercice**
 
-Utilisez le package `microbenchmark` pour comparer la solution vectorielle à la solution boucle. Faites la comparaison en variant les tailles de vecteur
+Utilisez le package `microbenchmark` pour comparer la solution de l'addition vectorielle à la version boucle. Faites la comparaison en variant les tailles de vecteur (conseil: créez deux fonction `plus_one` et `plus_one_for` prenant comme paramètre `n` qui est utilisé pour générer une variable aléatoire de taille `n`)
 
-
+<div class="fold s">
 ```{r microbenchmark vectorisation}
 plus_one <- function(n){
   x <- runif(n)
@@ -459,11 +461,12 @@ results_plus_one <- microbenchmark::microbenchmark(
   plus_one_for(10^5),
   times = 50
   )
+
 ggplot2::autoplot(results_plus_one)
-
 ```
+</div>
 
-### Boucles: comparaison avec Python et C++
+### Aparté: comparaison des boucles avec Python et C++
 
 De nombreux tests de performance sont disponibles en ligne, notamment sur cette [page](https://h2oai.github.io/db-benchmark/). On propose un test plus modeste de comparaison des performances de `Python`, `R` et `C++`. Pour exécuter du code `Python` depuis `R`, on utilise le package `Reticulate`^[Pour les personnes utilisant l'intégration continue, cela nécessite d'adapter le dépôt `rocker` généralement utilisé. Un exemple que je propose est le dépôt `pocker`, disponible sur [dockerhub](https://cloud.docker.com/u/linogaliana/repository/docker/linogaliana/pocker) [github](https://github.com/linogaliana/pocker), [gitlab](https://gitlab.com/linogaliana/pocker). Pour une explication de la raison d'être d'une image `docker` de ce type, ce [post](https://linogaliana.netlify.com/post/pocker/pocker-a-docker-container-to-use-r-and-python-together/)].
 
@@ -472,7 +475,7 @@ De nombreux tests de performance sont disponibles en ligne, notamment sur cette 
 library(reticulate)
 ```
 
-On se propose d'étudier la vitesse de ces langages sur l'opération très simple déjà évoquée `x <- x +1`. En `Python`, cela peut s'écrire:
+On se propose d'étudier la vitesse de ces langages sur l'opération très simple déjà évoquée `x <- x+1`. En `Python`, cela peut s'écrire:
 
 ```{python, eval = TRUE}
 
@@ -482,8 +485,8 @@ On se propose d'étudier la vitesse de ces langages sur l'opération très simpl
 import numpy as np
 import time
 import statistics
-# x = np.random.uniform(0,1,n)
 
+# VERSION BOUCLE
 def test(n = 1000): 
   start = time.time()
   x = np.random.uniform(0,1,n)
@@ -493,13 +496,8 @@ def test(n = 1000):
   return(end - start)
 
 exec_time_python = [test(100000) for k in range(100)]
-# statistics.median(exec_time_python*1000)
 
-# if __name__ == '__main__':
-#     import timeit
-#     import numpy as np
-#     print(timeit.timeit("test()", setup="from __main__ import test"),number = 50)
-
+# VERSION VECTORISEE
 def test2(n = 1000):
   start = time.time()
   x = np.random.uniform(0,1,n) + 1
@@ -513,6 +511,7 @@ exec_time_python2 = [test2(100000) for k in range(100)]
 A noter que l'utilisation de `reticulate` peut induire un surcoût par rapport à une utilisation de `Python` dans un environnement dédié (`Pycharm`, `jupyter`...). La solution équivalente en `R ` est
 
 ```{r}
+# VERSION BOUCLE
 test <- function(n = 1000){
   start <- Sys.time()
   x <- runif(n)
@@ -521,6 +520,7 @@ test <- function(n = 1000){
   return(end - start)
 }
 
+# VERSION VECTORISEE
 test2 <- function(n = 1000){
   start <- Sys.time()
   x <- runif(n) + 1
