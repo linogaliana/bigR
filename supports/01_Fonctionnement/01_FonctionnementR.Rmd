@@ -598,10 +598,18 @@ ggplot2::ggplot(data = exec_times) + ggplot2::geom_violin(ggplot2::aes(x = langa
 
 `R` est un langage qui a une utilisation intensive de la RAM. C'est ce qui permet au langage d'être assez rapide mais créé des difficultés lorsque les données sont volumineuses dans un environnement où la RAM est contrainte (les postes nomades de l'INSEE ont 8Go de RAM ; les ressources d'un serveur sont partagées entre tous les utilisateurs). Dans cette partie, nous verrons qu'outre l'import de données, la gourmandise de `R` provient de la manière dont les objets sont copiés en mémoire lorsqu'ils sont modifiés.
 
-Le livre de [@wickham2014advanced] est une ressource précieuse sur le sujet. De nombreux exemples de cette section sont tirés de cet ouvrage. 
+Le livre de [@wickham2014advanced] est une ressource précieuse sur le sujet. De nombreux exemples de cette section sont tirés de cet ouvrage. On utilisera le package `pryr` en supplément de `profvis` pour contrôler l'usage mémoire
+
+## Bases de la mémoire en `R`
+
+```{r}
+sizes <- sapply(0:50, function(n) pryr::object_size(seq_len(n)))
+plot(0:50, sizes, xlab = "Length", ylab = "Size (bytes)", 
+  type = "s")
+```
 
 
-## 
+##
 
 
 

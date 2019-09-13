@@ -14,5 +14,6 @@ Imports:
     microbenchmark,
     parallel,
     profvis,
+    pryr,
     reticulate,
     rmarkdown
