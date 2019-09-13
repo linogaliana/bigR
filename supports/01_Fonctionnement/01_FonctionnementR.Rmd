@@ -477,7 +477,7 @@ library(reticulate)
 
 On se propose d'étudier la vitesse de ces langages sur l'opération très simple déjà évoquée `x <- x+1`. En `Python`, cela peut s'écrire:
 
-<div class="fold s">
+
 ```{python, eval = TRUE}
 
 #conda_create("r-reticulate")
@@ -494,7 +494,7 @@ def test(n = 1000):
   for i in range(n):
     x[i] = x[i] + 1
   end = time.time()
-  return((end - start)*100000000)
+  return((end - start)*100000000)  # Nanoseconds
 
 exec_time_python = [test(100000) for k in range(100)]
 
@@ -503,16 +503,16 @@ def test2(n = 1000):
   start = time.time()
   x = np.random.uniform(0,1,n) + 1
   end = time.time()
-  return((end - start)*100000000)
+  return((end - start)*100000000)  # Nanoseconds
 
 exec_time_python2 = [test2(100000) for k in range(100)]
 
 ```
-</div>
+
 
 A noter que l'utilisation de `reticulate` peut induire un surcoût par rapport à une utilisation de `Python` dans un environnement dédié (`Pycharm`, `jupyter`...). La solution équivalente en `R ` est
 
-<div class="fold s">
+
 ```{r}
 # VERSION BOUCLE
 test <- function(n = 1000){
@@ -520,7 +520,7 @@ test <- function(n = 1000){
   x <- runif(n)
   for (i in seq_len(n)){x[i] <- x[i] + 1}
   end = Sys.time()
-  return((end - start)*100000000)
+  return((end - start)*100000000) # Nanoseconds
 }
 
 # VERSION VECTORISEE
@@ -528,18 +528,18 @@ test2 <- function(n = 1000){
   start <- Sys.time()
   x <- runif(n) + 1
   end = Sys.time()
-  return((end - start)*100000000)
+  return((end - start)*100000000)  # Nanoseconds
 }
 
 exec_time_R <- replicate(100, test(100000))
 # median(exec_time_R*1000)
 exec_time_R2 <- replicate(100, test2(100000))
 ```
-<div>
+
 
 La traduction `C++` est presque immédiate grâce à `Rcpp` (cf. chapitre dédié):
 
-<div class="fold s">
+
 ```{Rcpp, eval = TRUE}
 #include <Rcpp.h>
 using namespace Rcpp;
@@ -565,12 +565,12 @@ int test_cpp(int n) {
   for (int i=0; i<res.size(); i++) {
     res[i] = res[i] / n;
   }
-  return (res[1]-res[0]); // Milliseconds    
+  return (res[1]-res[0]); // Nanoseconds    
   
   //return x;
 }
 ```
-<div>
+
 
 ```{r, eval = TRUE}
 exec_time_cpp <- replicate(100, test_cpp(100000))
@@ -601,33 +601,174 @@ Le livre de @wickham2014advanced est une ressource précieuse sur le sujet. De n
 
 ## Bases de la mémoire en `R`
 
+Pour comprendre les besoins mémoire de `R`, on peut exécuter le code suivant qui inspecte la taille mémoire d'un vecteur en fonction de sa longueur:
+
 ```{r}
 sizes <- sapply(0:50, function(n) pryr::object_size(seq_len(n)))
 plot(0:50, sizes, xlab = "Length", ylab = "Size (bytes)", 
   type = "s")
 ```
 
+La première conclusion est que même un objet vide occupe 40 bytes de mémoire (soit $40 \times 8 = 320$ bits). La seconde est que le besoin mémoire de `R` n'est pas tout à fait linéaire: la progression est en escalier. C'est parce que demander au système de la mémoire (appel caché à la fonction `malloc()`) est une opération coûteuse. Demander la mémoire à la volée ralentirait profondément `R`. A la place, `R` demande de la mémoire par bloc et organise ceux-ci tant qu'ils ne sont pas pleins. Passé une taille critique (128 bytes), `R` arrêt de demander des emplacements en puissance de 2 (8, 16, 32, 48, 64, 128) pour être plus flexible. 
 
-##
+`R` gère lui-même la mémoire que le système lui alloue. Il le fait de manière à être le plus parcimonieux possible. Cela se retrouve dans le comportement de copie à l'identique. Un même emplacement peut être partagé par plusieurs objets, ce qui limite l'inflation en mémoire:
+
+```{r}
+x <- 1:1e6
+pryr::object_size(x)
+
+y <- list(x, x, x)
+pryr::object_size(y)
+```
+
+`y` ne pèse pas trois fois plus que `x`. `R` fait pointer `y` vers `x` plutôt que le copier. Cet usage particulier de la mémoire est, comme nous le verrons, une des raisons de l'efficience des assignations par référence et donc du package `data.table`. 
+
+Le même comportement s'observe avec les variables de type `character` car `R` a une gestion globale de celles-ci. Cela signifie que chaque `string` unique est stockée uniquement a un endroit et permet ainsi aux vecteurs de texte, qui ont potentiellement des valeurs redondantes, de consommer moins de mémoire:
+
+```{r}
+pryr::object_size("banana")
+
+pryr::object_size(rep("banana", 10))
+```
 
 
+## Utilisation de la mémoire
 
-Another general technique is to be careful with memory allocation. If possible pre-allocate your vector then fill in the values
+`pryr::mem_used()` permet de connaître la mémoire consommée par l'ensemble des objets `R`. La consommation de mémoire totale est néanmoins différente car cela n'inclut que les objets stockés actuellement en mémoire et pas l'ensemble de la mémoire qui a été allouée par `R`. Par exemple,  si un objet volumineux a été supprimé, `R` ne rend pas nécessairement la mémoire libérée à l'OS. De même, ce chiffre n'incorpore pas le poids mémoire de l'interpréteur `R` (ni de l'IDE utilisé, par exemple `Rstudio`). Pour connaître le poids mémoire effectif, il faut utiliser `htop` (Linux) ou le gestionnaire de tâches de Windows.   
 
-You should also consider pre-allocating memory for data frames and lists. Never grow an object. A good rule of thumb is to compare your objects before and after a `for` loop; have they increased in length? 
+```{r}
+pryr::mem_used()
+```
 
-Let’s consider three methods of creating a sequence of numbers. **Method** 1 creates an empty vector and gradually increases (or grows) the length of the vector
+
+Dans certains langages, il est nécessaire d'expliciter supprimer des objets pour que leur espace mémoire soit libéré. `R` adopte une approche différence, celle du **garbage collection** (GC). GC libère automatiquement la mémoire occupée par un objet qui n'existe plus (en inspectant les espaces qui pointent vers des noms d'objets n'existant pas). 
+
+
+```{r}
+# Create a big object
+pryr::mem_change(x <- 1:1e6)
+
+# Also point to 1:1e6 from y
+pryr::mem_change(y <- x)
+
+# Remove x, no memory freed because y is still pointing to it
+pryr::mem_change(rm(x))
+
+# Now nothing points to it and the memory can be freed
+pryr::mem_change(rm(y))
+
+```
+
+Les problèmes de saturation de la RAM se traduisent généralement par un message du type `cannot allocate a vector of size ** Mb` (quand la session ne *crash* pas...). Même si `R` effectue des GC fréquemment, il me semble nécessaire d'appeler la commande `gc()` de temps en temps (en particulier après l'appel d'une fonction ayant effectué un gros traitement) pour rendre de la RAM à l'OS. Sur un serveur partagé, cela permet de réduire les risques de saturation à cause de sessions inactives qui n'ont plus besoin de la mémoire qu'elles mobilisent^[@wickham2014advanced dans son ouvrage développe l'idée que la commande `gc()` est inutile car la GC étant automatique, évoquer `gc()` ne libère aucun espace mémoire mais prend du temps. En pratique, je trouve que c'est faux (`gc()` permet souvent de libérer plusieurs `gigas`) et que sur un serveur partagé, c'est une règle de bonne conduite pour permettre à chacun d'avoir des chances de disposer de mémoire quand il en a besoin.]. 
+
+
+## Modification d'objets
+
+Deux manières de modifier un objet sont possibles en `R`:
+
+* **In-place modification**: `R` modifie `x` en place. Cela signifie que le nouvel objet prend la place mémoire de l'ancien. C'est une approche économe en mémoire. Les modifications de `data.table` sur lesquels nous reviendrons sont beaucoup plus efficaces et économes en mémoire que celles sur un `tibble` ou un `data.frame` parce que ce package est construit sur la modification par référence qui étend la modification en place.
+* **Copy-on-modify**: `R` effectue une copie temporaire de `x` vers une nouvelle adresse, modifie la copie et ensuite pointe le nom de `x` vers le nouvel emplacement.
+
+Selon les circonstances, R va faire de la modification en place ou en copie. Les fonctions de remplacement primitives (`[[<-, [<-, @<-, $<-, attr<-, attributes<-, class<-, dim<-, dimnames<-, names<-, and levels<-`) modifie en place. Ce n'est pas le cas des autres fonctions d'assignation: `[<-.data.frame` n'étant pas une fonction primitive, elle effectuera de la modification en copie. 
+
+**Exercice**
+
+Pour comprendre la différence entre ces deux approches, on va utiliser les fonctions `pryr::address` (qui donne le pointeur vers l'emplacement mémoire) et `tracemem` qui suit les changements d'adresse d'un objet.
+
+1. Créez un vecteur `x <- 1:10` et une copie `y` de celui-ci. 
+2. Utilisez `pryr::address` et `pryr::object_size`: quel enseignement en tire-t-on ?
+3. Modifiez un élément du vecteur tout en utilisant `pryr::mem_used`. La modification sera `x[5] <- 6L`. Refaites appel à la fonction `pryr::address` et à la fonction `pryr::object_size`: quelle conclusion en tirez-vous sur la place de l'objet `y` en mémoire ? A-t-on fait de la modification en place ou en copie ?
+4. Faites un appel `tracemem(x)` et modifiez deux fois d'affilée une valeur du vecteur `x`: qu'observez-vous ? 
+
+```{r}
+# Question 1
+x <- 1:10
+y <- x
+
+# Question 2
+c(pryr::address(x), pryr::address(y))
+pryr::object_size(x,y)
+
+# Question 3
+pryr::mem_change(x[5] <- 6L)
+c(pryr::address(x), pryr::address(y))
+pryr::object_size(x,y)
+
+# Question 4
+tracemem(x)
+x[5] <- 6L
+x[5] <- 6L
+```
+
+Comme @wickham2014advanced l'évoque, il est compliqué d'éviter les modifications par copie. S'il est nécessaire de les éviter pour des raisons de vitesse ou de mémoire, utiliser `Rcpp` ou `data.table` peut s'imposer.
+
+Nous avons déjà évoqué un facteur à l'origine des boucles `for`: les appels répétés aux fonctions. Néanmoins, la raison principale de la lenteur des boucles provient généralement du comportement de copie de `R`. Lorsqu'on effectue une boucle sur un `data.frame`, chaque itération de la boucle copie cet objet. 
+
+
+**Exercice**
+
+1. Créer un dataframe `x <- data.frame(matrix(runif(100 * 1e4), ncol = 5))` et un vecteur stockant la médiane par colonne `medians <- vapply(x, median, numeric(1))`
+2. Utiliser la fonction 
+3. Faire une boucle for de 1 à 5:
+    + Prend la colonne `i` et retranche à chaque élément du vecteur la médiane.
+    + Réassigner le résultat à la colonne
+Observez l'adresse de `x`
+
+```{r}
+x <- data.frame(matrix(runif(100 * 1e4), ncol = 5))
+medians <- vapply(x, median, numeric(1))
+
+tracemem(x)
+for(i in 1:5) {
+  x[, i] <- x[, i] - medians[i]
+}
+```
+
+Comme vous pouvez le voir, le `data.frame` est copié à chaque itération, et cela plusieurs fois. C'est parce que la fonction `[<-.data.frame` n'est pas une fonction primitive. En utilisant des listes, on peut être beaucoup plus efficace
+
+**Exercice**
+
+1. Créer `y` une copie de `x` sous forme de liste et faire `tracemem(y)`. Vous pouvez garder le vecteur précédent `medians`
+2. Refaire la même chose que précédemment avec `y`
+3. Observer et conclure
+
+```{r}
+y <- as.list(x)
+
+tracemem(y)
+for(i in 1:5) {
+  y[[i]] <- y[[i]] - medians[i]
+}
+```
+
+
+## Pré-allocation de la mémoire
+
+A cause du comportement de copie, il faut faire attention à l'allocation de mémoire lorsqu'on désire ajouter des éléments à un objet. Comme nous av
+
+allons le voir, il est préférable de pré-allouer la taille d'un objet plutôt que de le faire croître ou alors utiliser une liste. 
+
+**Exercice**
+
+On va programmer des fonctions dépendant d'un paramètre `n`.  
+
+* **Méthode 1**:
+    + Créer un vecteur `vec` vide de taille `n` (vous pouvez utiliser `NULL` ou `c()`)
+    + Faire une boucle for de 1 à n ajoutant pour concatener l'élément `i` à `vec`
+
 
 ```{r}
 method1 = function(n) {
   vec = NULL # Or vec = c()
   for(i in seq_len(n))
     vec = c(vec, i)
-  vec
+  return(vec)
 }
 ```
 
-**Method** 2 creates an object of the final length and then changes the values in the object by subscripting:
+* **Méthode 2**:
+    + Créer un vecteur de taille `n` en utilisant la fonction `numeric`
+    + Assigner l'élément `i` dans `x[i]`
 
 ```{r}
 method2 = function(n) {
@@ -638,13 +779,14 @@ method2 = function(n) {
 }
 ```
 
-**Method 3** directly creates the final object
+* **Method 3**: créer une suite avec la fonction `seq_len`
 
 ```{r}
 method3 = function(n) seq_len(n)
 ```
 
-To compare the three methods we use the `microbenchmark()` function from the previous chapter
+
+* Comparer la performance des trois méthodes avec `microbenchmark::microbenchmark` avec $n=1000$
 
 ```{r}
 n <- 1000
@@ -654,53 +796,31 @@ ggplot2::autoplot(
 )
 ```
 
-The table below shows the timing in seconds on my machine for these three methods for 100 run of those methods for a 1000 observations. The relationships for varying *n* are all roughly linear on a log-log scale, but the timings between methods are drastically different. Notice that the timings are no longer trivial. When $n=10^7$, method 1 takes around an hour whilst method 2 takes 2 seconds and method 3 is almost instantaneous. Remember the golden rule; access the underlying `C`/`Fortran` code as quickly as possible.
+La méthode optimale est bien-sûr celle utilisant la fonction adaptée. La pré-allocation a permis de gagner pas mal de temps. 
 
-
-You have at least two solutions to this problem. The first solution is to pre-allocate the whole result once (if you know its size in advance) and just fill it
-
-Another solution that can be really useful if you don’t know the size of the result is to store the results in a list. A list, as opposed to a vector or a matrix, stores its elements in different places in memory (the elements don’t have to be contiguously stored in memory) so that you can add one element to the list without copying the rest of the list
-
-
-
-### Vectorised code
-
-Recall the golden rule in R programming, access the underlying C/Fortran routines as quickly as possible; the fewer functions calls required to achieve this, the better. With this mind, many R functions are vectorised, that is the function’s inputs and/or outputs naturally work with vectors, reducing the number of function calls required. For example, the code
-
-```{r, eval = TRUE}
-n <- 10^4
-x = runif(n) + 1
-```
-
-performs two vectorised operations. 
-
-1. First runif() returns n random numbers.
-2. Second we add 1 to each element of the vector. In general it is a good idea to exploit vectorised functions.
-
-Consider this piece of R code that calculates the sum of `log(x)`
-
-```{r, eval = TRUE}
-log_sum = 0
-for(i in 1:length(x))
-  log_sum = log_sum + log(x[i])
-```
-
-This code could easily be vectorised via
+* Effectuer un *profiling* avec $n=1e5$
 
 ```{r}
-log_sum = sum(log(x))
+n <- 1e5
+profvis::profvis({
+  x <- method1(n)
+})
+
+profvis::profvis({
+  y <- method2(n)
+})
+
 ```
 
-Writing code this way has a number of benefits.
-
-1. It’s faster. When n=107, the `R` way is about forty times faster.
-2. It’s neater.
-3. It doesn’t contain a bug when x is of length 0
+La méthode 2, loin d'être efficiente, est 400 fois plus rapide que la méthode 1. @gillespie2016efficient propose plus de résultats en faisant varier la taille du vecteur. Quand $n=10^7$, la méthode 1 prend une heure quand la méthode 2 fonctionne en 2 secondes et la méthode 3 est instantanée. 
 
 
-As with the general example in section 3.2, the slowdown isn’t due to the for loop. Instead, it’s because there are many more functions calls.
+La pré-allocation est une manière de réduire les besoins mémoires et donc d'accélérer le code. Une autre solution est l'utilisation de listes, qui peut être pratique lorsqu'on ne connaît pas la taille d'un élément à l'avance. Les listes, contrairement aux vecteurs ou matrices, stockent leurs éléments dans des emplacements mémoires non contigües ce qui permet d'ajouter un élément sans copier le reste de l'objet et permet ainsi la modification par passage.  
 
-#### Example: Monte-Carlo integration
+
+<!------------------------
+
+# Example: Monte-Carlo integration
 
 It’s also important to make full use of R functions that use vectors. For example, suppose we wish to estimate the integral 
 
@@ -764,7 +884,10 @@ The function `monte_carlo_vec()` is around 30 times faster than monte_carlo():
 N = 500000
 system.time(monte_carlo_vec(N))
 ```
+----------->
 
+
+# Conclusion
 
 
 # References
