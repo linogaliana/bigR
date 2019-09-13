@@ -477,6 +477,7 @@ library(reticulate)
 
 On se propose d'étudier la vitesse de ces langages sur l'opération très simple déjà évoquée `x <- x+1`. En `Python`, cela peut s'écrire:
 
+<div class="fold s">
 ```{python, eval = TRUE}
 
 #conda_create("r-reticulate")
@@ -507,9 +508,11 @@ def test2(n = 1000):
 exec_time_python2 = [test2(100000) for k in range(100)]
 
 ```
+</div>
 
 A noter que l'utilisation de `reticulate` peut induire un surcoût par rapport à une utilisation de `Python` dans un environnement dédié (`Pycharm`, `jupyter`...). La solution équivalente en `R ` est
 
+<div class="fold s">
 ```{r}
 # VERSION BOUCLE
 test <- function(n = 1000){
@@ -532,9 +535,11 @@ exec_time_R <- replicate(100, test(100000))
 # median(exec_time_R*1000)
 exec_time_R2 <- replicate(100, test2(100000))
 ```
+<div>
 
 La traduction `C++` est presque immédiate grâce à `Rcpp` (cf. chapitre dédié):
 
+<div class="fold s">
 ```{Rcpp, eval = TRUE}
 #include <Rcpp.h>
 using namespace Rcpp;
@@ -565,6 +570,7 @@ int test_cpp(int n) {
   //return x;
 }
 ```
+<div>
 
 ```{r, eval = TRUE}
 exec_time_cpp <- replicate(100, test_cpp(100000))
@@ -573,6 +579,9 @@ exec_time_cpp <- replicate(100, test_cpp(100000))
 On peut reproduire un graphique proche de celui produit par `microbenchmark` pour déterminer la vitesse d'exécution des différentes approches:
 
 ```{r}
+
+median(exec_time_cpp)
+
 exec_times <- do.call(rbind,list(
   data.frame(t = py$exec_time_python, langage = "python [loop]"),
   data.frame(t = exec_time_R, langage = "R [loop]"),
@@ -587,8 +596,14 @@ ggplot2::ggplot(data = exec_times) + ggplot2::geom_violin(ggplot2::aes(x = langa
 
 # Mémoire
 
+`R` est un langage qui a une utilisation intensive de la RAM. C'est ce qui permet au langage d'être assez rapide mais créé des difficultés lorsque les données sont volumineuses dans un environnement où la RAM est contrainte (les postes nomades de l'INSEE ont 8Go de RAM ; les ressources d'un serveur sont partagées entre tous les utilisateurs). Dans cette partie, nous verrons qu'outre l'import de données, la gourmandise de `R` provient de la manière dont les objets sont copiés en mémoire lorsqu'ils sont modifiés.
 
-### Memory allocation
+Le livre de [@wickham2014advanced] est une ressource précieuse sur le sujet. De nombreux exemples de cette section sont tirés de cet ouvrage. 
+
+
+## 
+
+
 
 Another general technique is to be careful with memory allocation. If possible pre-allocate your vector then fill in the values
 
