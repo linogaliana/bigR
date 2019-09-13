@@ -494,7 +494,7 @@ def test(n = 1000):
   for i in range(n):
     x[i] = x[i] + 1
   end = time.time()
-  return(end - start)
+  return((end - start)*100000000)
 
 exec_time_python = [test(100000) for k in range(100)]
 
@@ -503,7 +503,7 @@ def test2(n = 1000):
   start = time.time()
   x = np.random.uniform(0,1,n) + 1
   end = time.time()
-  return(end - start)
+  return((end - start)*100000000)
 
 exec_time_python2 = [test2(100000) for k in range(100)]
 
@@ -520,7 +520,7 @@ test <- function(n = 1000){
   x <- runif(n)
   for (i in seq_len(n)){x[i] <- x[i] + 1}
   end = Sys.time()
-  return(end - start)
+  return((end - start)*100000000)
 }
 
 # VERSION VECTORISEE
@@ -528,7 +528,7 @@ test2 <- function(n = 1000){
   start <- Sys.time()
   x <- runif(n) + 1
   end = Sys.time()
-  return(end - start)
+  return((end - start)*100000000)
 }
 
 exec_time_R <- replicate(100, test(100000))
@@ -565,7 +565,7 @@ int test_cpp(int n) {
   for (int i=0; i<res.size(); i++) {
     res[i] = res[i] / n;
   }
-  return (res[1]-res[0])/1000; // Milliseconds    
+  return (res[1]-res[0]); // Milliseconds    
   
   //return x;
 }
@@ -580,8 +580,6 @@ On peut reproduire un graphique proche de celui produit par `microbenchmark` pou
 
 ```{r}
 
-median(exec_time_cpp)
-
 exec_times <- do.call(rbind,list(
   data.frame(t = py$exec_time_python, langage = "python [loop]"),
   data.frame(t = exec_time_R, langage = "R [loop]"),
@@ -589,7 +587,8 @@ exec_times <- do.call(rbind,list(
   data.frame(t = exec_time_R2, langage = "R [base]"),
   data.frame(t = exec_time_cpp, langage = "Rcpp")
 ))
-ggplot2::ggplot(data = exec_times) + ggplot2::geom_violin(ggplot2::aes(x = langage, y = log(t)))
+ggplot2::ggplot(data = exec_times) + ggplot2::geom_violin(ggplot2::aes(x = langage, y = log(t))) +
+  ggplot2::labs(y = "Iteration time in (log) nanoseconds")
 ```
 
 
@@ -598,7 +597,7 @@ ggplot2::ggplot(data = exec_times) + ggplot2::geom_violin(ggplot2::aes(x = langa
 
 `R` est un langage qui a une utilisation intensive de la RAM. C'est ce qui permet au langage d'être assez rapide mais créé des difficultés lorsque les données sont volumineuses dans un environnement où la RAM est contrainte (les postes nomades de l'INSEE ont 8Go de RAM ; les ressources d'un serveur sont partagées entre tous les utilisateurs). Dans cette partie, nous verrons qu'outre l'import de données, la gourmandise de `R` provient de la manière dont les objets sont copiés en mémoire lorsqu'ils sont modifiés.
 
-Le livre de [@wickham2014advanced] est une ressource précieuse sur le sujet. De nombreux exemples de cette section sont tirés de cet ouvrage. On utilisera le package `pryr` en supplément de `profvis` pour contrôler l'usage mémoire
+Le livre de @wickham2014advanced est une ressource précieuse sur le sujet. De nombreux exemples de cette section sont tirés de cet ouvrage. On utilisera le package `pryr` en supplément de `profvis` pour contrôler l'usage mémoire
 
 ## Bases de la mémoire en `R`
 
