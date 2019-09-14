@@ -786,33 +786,17 @@ method3 = function(n) seq_len(n)
 ```
 
 
-* Comparer la performance des trois méthodes avec `microbenchmark::microbenchmark` avec $n=1000$
+* Comparer la performance des trois méthodes avec `microbenchmark::microbenchmark` avec $n=1000$: regarder les temps d'exécution en nanoseconds sur 100 répétitions des trois méthodes puis faire le graphique avec `ggplot2::autoplot`
 
 ```{r}
-n <- 1000
-ggplot2::autoplot(
-  microbenchmark::microbenchmark(times = 100, unit = "s", 
-                                 method1(n), method2(n), method3(n))
-)
+n <- 1e4
+micro <- microbenchmark::microbenchmark(times = 100, 
+                                        method1(n), method2(n), method3(n))
+print(micro)
+ggplot2::autoplot(micro)
 ```
 
-La méthode optimale est bien-sûr celle utilisant la fonction adaptée. La pré-allocation a permis de gagner pas mal de temps. 
-
-* Effectuer un *profiling* avec $n=1e5$
-
-```{r}
-n <- 1e5
-profvis::profvis({
-  x <- method1(n)
-})
-
-profvis::profvis({
-  y <- method2(n)
-})
-
-```
-
-La méthode 2, loin d'être efficiente, est 400 fois plus rapide que la méthode 1. @gillespie2016efficient propose plus de résultats en faisant varier la taille du vecteur. Quand $n=10^7$, la méthode 1 prend une heure quand la méthode 2 fonctionne en 2 secondes et la méthode 3 est instantanée. 
+La méthode optimale est bien-sûr celle utilisant la fonction adaptée. La méthode 2, loin d'être efficiente, est 200 fois plus rapide que la méthode 1. @gillespie2016efficient propose plus de résultats en faisant varier la taille du vecteur. Quand $n=10^7$, la méthode 1 prend une heure quand la méthode 2 fonctionne en 2 secondes et la méthode 3 est instantanée. 
 
 
 La pré-allocation est une manière de réduire les besoins mémoires et donc d'accélérer le code. Une autre solution est l'utilisation de listes, qui peut être pratique lorsqu'on ne connaît pas la taille d'un élément à l'avance. Les listes, contrairement aux vecteurs ou matrices, stockent leurs éléments dans des emplacements mémoires non contigües ce qui permet d'ajouter un élément sans copier le reste de l'objet et permet ainsi la modification par passage.  
