@@ -680,25 +680,34 @@ Pour comprendre la différence entre ces deux approches, on va utiliser les fonc
 3. Modifiez un élément du vecteur tout en utilisant `pryr::mem_used`. La modification sera `x[5] <- 6L`. Refaites appel à la fonction `pryr::address` et à la fonction `pryr::object_size`: quelle conclusion en tirez-vous sur la place de l'objet `y` en mémoire ? A-t-on fait de la modification en place ou en copie ?
 4. Faites un appel `tracemem(x)` et modifiez deux fois d'affilée une valeur du vecteur `x`: qu'observez-vous ? 
 
-```{r}
+<div class="fold s">
+```{r, results = "hide"}
 # Question 1
 x <- 1:10
 y <- x
 
 # Question 2
 c(pryr::address(x), pryr::address(y))
+# [1] "0xfa05510" "0xfa05510"
 pryr::object_size(x,y)
+# 96 B
 
 # Question 3
 pryr::mem_change(x[5] <- 6L)
+# -6.52 kB
 c(pryr::address(x), pryr::address(y))
+# "0x1d8380f0" "0xfa05510" 
 pryr::object_size(x,y)
+# 192 B
 
 # Question 4
 tracemem(x)
 x[5] <- 6L
+# tracemem[0x000000001d8380f0 -> 0x000000001d721648]:
 x[5] <- 6L
+# tracemem[0x000000001d721648 -> 0x000000001d6ef600]:
 ```
+</div>
 
 Comme @wickham2014advanced l'évoque, il est compliqué d'éviter les modifications par copie. S'il est nécessaire de les éviter pour des raisons de vitesse ou de mémoire, utiliser `Rcpp` ou `data.table` peut s'imposer.
 
@@ -714,6 +723,7 @@ Nous avons déjà évoqué un facteur à l'origine des boucles `for`: les appels
     + Réassigner le résultat à la colonne
 Observez l'adresse de `x`
 
+<div class="fold s">
 ```{r, results="hide"}
 x <- data.frame(matrix(runif(100 * 1e4), ncol = 5))
 medians <- vapply(x, median, numeric(1))
@@ -739,6 +749,7 @@ for(i in 1:5) {
 # tracemem[0x0000000014f73220 -> 0x0000000014f730d0]: [<-.data.frame [<- 
 # tracemem[0x0000000014f730d0 -> 0x0000000014f73060]: [<-.data.frame [<-
 ```
+</div>
 
 Comme vous pouvez le voir, le `data.frame` est copié à chaque itération, et cela plusieurs fois. C'est parce que la fonction `[<-.data.frame` n'est pas une fonction primitive. En utilisant des listes, on peut être beaucoup plus efficace
 
@@ -748,6 +759,7 @@ Comme vous pouvez le voir, le `data.frame` est copié à chaque itération, et c
 2. Refaire la même chose que précédemment avec `y`
 3. Observer et conclure
 
+<div class="fold s">
 ```{r, results="hide"}
 y <- as.list(x)
 
@@ -758,7 +770,7 @@ for(i in 1:5) {
 }
 # tracemem[0x0000000014feab30 -> 0x00000000122a3600]:
 ```
-
+</div>
 
 ## Pré-allocation de la mémoire
 
@@ -772,7 +784,7 @@ On va programmer des fonctions dépendant d'un paramètre `n`.
     + Créer un vecteur `vec` vide de taille `n` (vous pouvez utiliser `NULL` ou `c()`)
     + Faire une boucle for de 1 à n ajoutant pour concatener l'élément `i` à `vec`
 
-
+<div class="fold s">
 ```{r}
 method1 = function(n) {
   vec = NULL # Or vec = c()
@@ -781,11 +793,13 @@ method1 = function(n) {
   return(vec)
 }
 ```
+</div>
 
 * **Méthode 2**:
     + Créer un vecteur de taille `n` en utilisant la fonction `numeric`
     + Assigner l'élément `i` dans `x[i]`
 
+<div class="fold s">
 ```{r}
 method2 = function(n) {
   vec = numeric(n)
@@ -794,16 +808,19 @@ method2 = function(n) {
   vec
 }
 ```
+</div>
 
 * **Method 3**: créer une suite avec la fonction `seq_len`
 
+<div class="fold s">
 ```{r}
 method3 = function(n) seq_len(n)
 ```
-
+</div>
 
 * Comparer la performance des trois méthodes avec `microbenchmark::microbenchmark` avec $n=1000$: regarder les temps d'exécution en nanoseconds sur 100 répétitions des trois méthodes puis faire le graphique avec `ggplot2::autoplot`.
 
+<div class="fold s">
 ```{r}
 n <- 1e4
 micro <- microbenchmark::microbenchmark(times = 100, 
@@ -811,15 +828,17 @@ micro <- microbenchmark::microbenchmark(times = 100,
 print(micro)
 ggplot2::autoplot(micro)
 ```
+</div>
 
 * Comparer le poids final du vecteur de sortie de `method1` avec `n=1e5` et le besoin mémoire pour le générer avec `profvis::profvis` (cliquez sur l'onglet `data`)
 
+<div class="fold s">
 ```{r, results="hide"}
 n <- 1e5
 profvis::profvis(x <- method1(n))
 pryr::object_size(x)
 ```
-
+</div>
 
 La méthode optimale est bien-sûr celle utilisant la fonction adaptée. La méthode 2, loin d'être efficiente, est 200 fois plus rapide que la méthode 1. @gillespie2016efficient propose plus de résultats en faisant varier la taille du vecteur. Quand $n=10^7$, la méthode 1 prend une heure quand la méthode 2 fonctionne en 2 secondes et la méthode 3 est instantanée. En termes de consommation de RAM, le *profiling* nous montre que la méthode 1 est très gourmande: pour générer un vecteur d'une taille finale de 400kB, il faut environ 1.3 Gigas de RAM qu'on rend ensuite au système. 
 
