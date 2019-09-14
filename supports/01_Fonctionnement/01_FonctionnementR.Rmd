@@ -714,14 +714,30 @@ Nous avons déjà évoqué un facteur à l'origine des boucles `for`: les appels
     + Réassigner le résultat à la colonne
 Observez l'adresse de `x`
 
-```{r}
+```{r, results="hide"}
 x <- data.frame(matrix(runif(100 * 1e4), ncol = 5))
 medians <- vapply(x, median, numeric(1))
 
 tracemem(x)
+# "<00000000090AA718>"
 for(i in 1:5) {
   x[, i] <- x[, i] - medians[i]
 }
+# tracemem[0x00000000090aa718 -> 0x0000000014f73ae0]: 
+# tracemem[0x0000000014f73ae0 -> 0x0000000014f73990]: [<-.data.frame [<- 
+# tracemem[0x0000000014f73990 -> 0x0000000014f73920]: [<-.data.frame [<- 
+# tracemem[0x0000000014f73920 -> 0x0000000014f738b0]: 
+# tracemem[0x0000000014f738b0 -> 0x0000000014f73760]: [<-.data.frame [<- 
+# tracemem[0x0000000014f73760 -> 0x0000000014f736f0]: [<-.data.frame [<- 
+# tracemem[0x0000000014f736f0 -> 0x0000000014f73680]: 
+# tracemem[0x0000000014f73680 -> 0x0000000014f73530]: [<-.data.frame [<- 
+# tracemem[0x0000000014f73530 -> 0x0000000014f734c0]: [<-.data.frame [<- 
+# tracemem[0x0000000014f734c0 -> 0x0000000014f73450]: 
+# tracemem[0x0000000014f73450 -> 0x0000000014f73300]: [<-.data.frame [<- 
+# tracemem[0x0000000014f73300 -> 0x0000000014f73290]: [<-.data.frame [<- 
+# tracemem[0x0000000014f73290 -> 0x0000000014f73220]: 
+# tracemem[0x0000000014f73220 -> 0x0000000014f730d0]: [<-.data.frame [<- 
+# tracemem[0x0000000014f730d0 -> 0x0000000014f73060]: [<-.data.frame [<-
 ```
 
 Comme vous pouvez le voir, le `data.frame` est copié à chaque itération, et cela plusieurs fois. C'est parce que la fonction `[<-.data.frame` n'est pas une fonction primitive. En utilisant des listes, on peut être beaucoup plus efficace
@@ -732,21 +748,21 @@ Comme vous pouvez le voir, le `data.frame` est copié à chaque itération, et c
 2. Refaire la même chose que précédemment avec `y`
 3. Observer et conclure
 
-```{r}
+```{r, results="hide"}
 y <- as.list(x)
 
 tracemem(y)
+# "<0000000014FEAB30>"
 for(i in 1:5) {
   y[[i]] <- y[[i]] - medians[i]
 }
+# tracemem[0x0000000014feab30 -> 0x00000000122a3600]:
 ```
 
 
 ## Pré-allocation de la mémoire
 
-A cause du comportement de copie, il faut faire attention à l'allocation de mémoire lorsqu'on désire ajouter des éléments à un objet. Comme nous av
-
-allons le voir, il est préférable de pré-allouer la taille d'un objet plutôt que de le faire croître ou alors utiliser une liste. 
+A cause du comportement de copie, il faut faire attention à l'allocation de mémoire lorsqu'on désire ajouter des éléments à un objet. Comme nous allons le voir, il est préférable de pré-allouer la taille d'un objet plutôt que de le faire croître ou alors utiliser une liste. 
 
 **Exercice**
 
@@ -786,7 +802,7 @@ method3 = function(n) seq_len(n)
 ```
 
 
-* Comparer la performance des trois méthodes avec `microbenchmark::microbenchmark` avec $n=1000$: regarder les temps d'exécution en nanoseconds sur 100 répétitions des trois méthodes puis faire le graphique avec `ggplot2::autoplot`
+* Comparer la performance des trois méthodes avec `microbenchmark::microbenchmark` avec $n=1000$: regarder les temps d'exécution en nanoseconds sur 100 répétitions des trois méthodes puis faire le graphique avec `ggplot2::autoplot`.
 
 ```{r}
 n <- 1e4
@@ -796,10 +812,30 @@ print(micro)
 ggplot2::autoplot(micro)
 ```
 
-La méthode optimale est bien-sûr celle utilisant la fonction adaptée. La méthode 2, loin d'être efficiente, est 200 fois plus rapide que la méthode 1. @gillespie2016efficient propose plus de résultats en faisant varier la taille du vecteur. Quand $n=10^7$, la méthode 1 prend une heure quand la méthode 2 fonctionne en 2 secondes et la méthode 3 est instantanée. 
+* Comparer le poids final du vecteur de sortie de `method1` avec `n=1e5` et le besoin mémoire pour le générer avec `profvis::profvis` (cliquez sur l'onglet `data`)
+
+```{r, results="hide"}
+n <- 1e5
+profvis::profvis(x <- method1(n))
+pryr::object_size(x)
+```
+
+
+La méthode optimale est bien-sûr celle utilisant la fonction adaptée. La méthode 2, loin d'être efficiente, est 200 fois plus rapide que la méthode 1. @gillespie2016efficient propose plus de résultats en faisant varier la taille du vecteur. Quand $n=10^7$, la méthode 1 prend une heure quand la méthode 2 fonctionne en 2 secondes et la méthode 3 est instantanée. En termes de consommation de RAM, le *profiling* nous montre que la méthode 1 est très gourmande: pour générer un vecteur d'une taille finale de 400kB, il faut environ 1.3 Gigas de RAM qu'on rend ensuite au système. 
 
 
 La pré-allocation est une manière de réduire les besoins mémoires et donc d'accélérer le code. Une autre solution est l'utilisation de listes, qui peut être pratique lorsqu'on ne connaît pas la taille d'un élément à l'avance. Les listes, contrairement aux vecteurs ou matrices, stockent leurs éléments dans des emplacements mémoires non contigües ce qui permet d'ajouter un élément sans copier le reste de l'objet et permet ainsi la modification par passage.  
+
+
+
+
+# Conclusion
+
+**TO DO**
+
+
+# References
+
 
 
 <!------------------------
@@ -869,9 +905,3 @@ N = 500000
 system.time(monte_carlo_vec(N))
 ```
 ----------->
-
-
-# Conclusion
-
-
-# References
