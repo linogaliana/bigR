@@ -1,13 +1,266 @@
 ---
-title: "02_datatable"
+title: "`data.table`: un package efficace en `R`"
 author: "Lino Galiana"
-date: "20 juin 2019"
+date: "`r format(Sys.Date(), format = '%d %B %Y')`"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+
+Plusieurs vignettes sont disponibles sur la page de documentation du package. N’hésitez pas à vous référer à ces documents pour répondre aux cas pratiques de cette partie
+
+* [Vignette semantics](https://rdrr.io/cran/data.table/f/vignettes/datatable-reference-semantics.Rmd)
+* [Keys and fast binary search](****)
+* 
+
+
+data.table is an R package that provides an enhanced version of data.frames, which are the standard data structure for storing data in base R.
+
+In contrast to a data.frame, you can do a lot more than just subsetting rows and selecting columns within the frame of a data.table, i.e., within [ ... ] (NB: we might also refer to writing things inside DT[...] as “querying DT”, in analogy to SQL). To understand it we will have to first look at the general form of data.table syntax, as shown below:
+
+DT[i, j, by]
+Take DT, subset/reorder rows using i, then calculate j, grouped by by.
+
+# Import de données
+
+# Sémantique
+
+DF$c <- 18:13               # (1) -- replace entire column
+# or
+DF$c[DF$ID == "b"] <- 15:13 # (2) -- subassign in column 'c'
+
+deep copy of the entire data.frame in versions of R versions < 3.1. It copied more than once. To improve performance by avoiding these redundant copies, data.table utilised the available but unused := operator in R.
+
+Great performance improvements were made in R v3.1 as a result of which only a shallow copy is made for (1) and not deep copy. However, for (2) still, the entire column is deep copied even in R v3.1+. This means the more columns one subassigns to in the same query, the more deep copies R does.
+
+## shallow vs deep copy
+
+A shallow copy is just a copy of the vector of column pointers (corresponding to the columns in a data.frame or data.table). The actual data is not physically copied in memory.
+
+A deep copy on the other hand copies the entire data to another location in memory.
+
+With data.table's := operator, absolutely no copies are made in both (1) and (2), irrespective of R version you are using. This is because := operator updates data.table columns in-place (by reference).
+
+DT[, c("colA", "colB", ...) := list(valA, valB, ...)]
+DT[, `:=`(colA = valA, # valA is assigned to colA
+          colB = valB, # valB is assigned to colB
+          ...
+)]
+
+
+The result is returned invisibly.
+
+Update some rows of columns by reference - sub-assign by reference flights[hour == 24L, hour := 0L]
+
+c) Delete column by reference
+
+Assigning NULL to a column deletes that column. And it happens instantly.
+
+e) Multiple columns and :=
+
+in_cols  = c("dep_delay", "arr_delay")
+out_cols = c("max_dep_delay", "max_arr_delay")
+flights[, c(out_cols) := lapply(.SD, max), by = month, .SDcols = in_cols]
+
+Note that since we allow assignment by reference without quoting column names when there is only one column as explained in Section 2c, we can not do out_cols := lapply(.SD, max). That would result in adding one new column named out_col. Instead we should do either c(out_cols) or simply (out_cols). Wrapping the variable name with ( is enough to differentiate between the two cases.
+
+## := and copy()
+
+ometimes, we would like to pass a data.table object to a function, and might want to use the := operator, but wouldn't want to update the original object. We can accomplish this using the function copy().
+
+The copy() function deep copies the input object and therefore any subsequent update by reference operations performed on the copied object will not affect the original object.
+
+# Subsetting
+
+## subsetting des lignes
+
+Within the frame of a data.table, columns can be referred to as if they are variables, much like in SQL or Stata. Therefore, we simply refer to dest and month as if they are variables. A comma after the condition in i is not required. But flights[dest == "JFK" & month == 6L, ] would work just fine. In data.frames, however, the comma is necessary.
+
+.N 
+.N is a special built-in variable that holds the number of observations in the current group. 
+
+.I
+.SD
+
+sorting: We can use the R function order() to accomplish this.
+
+Pour prendre un sample: dt[sample(.N, 1e3, replace = FALSE)]
+
+## := et passage par référence
+
+
+## Subsetting des colonnes
+
+
+1 seule colonne: flights[, arr_delay] NSE ou flights[, get('arr_delay')] SE  flights[["arr_delay"]]
+Select arr_delay column, but return as a data.table instead. 
+ans <- flights[, list(arr_delay)]
+We wrap the variables (column names) within list(), which ensures that a data.table is returned. In case of a single column name, not wrapping with list() returns a vector instead,
+data.table also allows wrapping columns with .() instead of list(). It is an alias to list(); they both mean the same. 
+
+Select both arr_delay and dep_delay columns.
+ans <- flights[, .(arr_delay, dep_delay)]
+head(ans)
+elect both arr_delay and dep_delay columns and rename them to delay_arr and delay_dep.
+
+Since .() is just an alias for list(), we can name columns as we would while creating a list.
+
+ans <- flights[, .(delay_arr = arr_delay, delay_dep = dep_delay)]
+head(ans)
+
+Equivalent du select avec .SDcols
+
+select_cols = c("arr_delay", "dep_delay")
+flights[ , ..select_cols]
+flights[ , select_cols, with = FALSE]
+For those familiar with the Unix terminal, the .. prefix should be reminiscent of the “up-one-level” command, which is analogous to what’s happening here – the .. signals to data.table to look for the select_cols variable “up-one-level”, i.e., in the global environment in this case.
+with = TRUE is the default in data.table because we can do much more by allowing j to handle expressions
+
+# Aggregations
+
+
+ans <- flights[, sum( (arr_delay + dep_delay) < 0 )]
+ans
+
+
+ans <- flights[, .(.N), by = .(origin)]
+
+
+ans <- flights[carrier == "AA",
+        .(mean(arr_delay), mean(dep_delay)),
+        keyby = .(origin, dest, month)]
+ans
+All we did was to change by to keyby. This automatically orders the result by the grouping variables in increasing order. In fact, due to the internal implementation of by first requiring a sort before recovering the original table’s order, keyby is typically faster than by because it doesn’t require this second step.
+Keys: Actually keyby does a little more than just ordering. It also sets a key after ordering by setting an attribute called sorted.
+
+
+ Can by accept expressions as well or does it just take columns?
+
+Yes it does. As an example, if we would like to find out how many flights started late but arrived early (or on time), started and arrived late etc…
+
+ans <- flights[, .N, .(dep_delay>0, arr_delay>0)]
+ans
+
+
+Special symbol .SD:
+
+data.table provides a special symbol, called .SD. It stands for Subset of Data. It by itself is a data.table that holds the data for the current group defined using by.
+
+Recall that a data.table is internally a list as well with all its columns of equal length.
+
+Let’s use the data.table DT from before to get a glimpse of what .SD looks like.
+
+.SD contains all the columns except the grouping columns by default.
+
+To compute on (multiple) columns, we can then simply use the base R function lapply().
+
+DT[, lapply(.SD, mean), by = ID]
+
+.SD holds the rows corresponding to columns a, b and c for that group. We compute the mean() on each of these columns using the already-familiar base function lapply().
+
+Each group returns a list of three elements containing the mean value which will become the columns of the resulting data.table.
+
+Since lapply() returns a list, so there is no need to wrap it with an additional .() 
+
+.SDcols
+
+Using the argument .SDcols. It accepts either column names or column indices. 
+
+How can we return the first two rows for each month?
+
+ans <- flights[, head(.SD, 2), by = month]
+head(ans)
+
+
+
+Parler de l'indexation
+
+
+# Utilisation avancée
+
+
+# Fast subsetting
+All data.frames have a row names attribute. We can subset a particular row using its row name. 
+
+row names are more or less an index to rows of a data.frame. However,
+
+Each row is limited to exactly one row name.
+row names should be unique.
+data.tables never uses row names. Since data.tables inherit from data.frames, it still has the row names attribute. But it never uses them.
+Instead, in data.tables we set and use keys
+
+We can set keys on multiple columns and the column can be of different types 
+Uniqueness is not enforced, i.e., duplicate key values are allowed. Since rows are sorted by key, any duplicates in the key columns will appear consecutively.
+
+Setting a key does two things:
+
+    physically reorders the rows of the data.table by the column(s) provided by reference, always in increasing order.
+
+    marks those columns as key columns by setting an attribute called sorted to the data.table.
+    
+    Note that we did not have to assign the result back to a variable. This is because like the := function we saw in the “Introduction to data.table” vignette, setkey() and setkeyv() modify the input data.table by reference. They return the result invisibly.
+    
+    
+set* and :=
+
+In data.table, the := operator and all the set* (e.g., setkey, setorder, setnames etc..) functions are the only ones which modify the input object by reference.
+
+Once you key a data.table by certain columns, you can subset by querying those key columns using the .() notation in i.
+
+flights[.("JFK")]
+The key column has already been set to origin. So it is sufficient to provide the value, here “JFK”, directly. The .() syntax helps identify that the task requires looking up the value “JFK” in the key column of data.table (here column origin of flights data.table).
+
+
+Subset all rows using key columns where first key column origin matches “JFK” and second key column dest matches “MIA”
+
+setkey(flights, origin, dest)
+flights[.("JFK", "MIA")]
+
+
+flights[.("LGA", "TPA"), .(arr_delay)]
+
+
+We have seen so far how we can set and use keys to subset. But what’s the advantage? For example, instead of doing:
+
+# key by origin,dest columns
+flights[.("JFK", "MIA")]
+
+we could have done:
+
+flights[origin == "JFK" & dest == "MIA"]
+
+One advantage very likely is shorter syntax. But even more than that, binary search based subsets are incredibly fast.
+
+To use slow vector scan key needs to be removed.
+
+setkey(flights, NULL)
+flights[origin == "JFK" & dest == "MIA"]
+
+
+The speed-up of indexes data.table is ~327x!
+
+
+
+Vector scan approach:
+
+    The column x is searched for the value “g” row by row, on all 20 million of them. This results in a logical vector of size 20 million, with values TRUE, FALSE or NA corresponding to x’s value.
+
+    Similarly, the column y is searched for 877 on all 20 million rows one by one, and stored in another logical vector.
+
+    Element wise & operations are performed on the intermediate logical vectors and all the rows where the expression evaluates to TRUE are returned.
+
+This is what we call a vector scan approach. And this is quite inefficient, especially on larger tables and when one needs repeated subsetting, because it has to scan through all the rows each time.
+
+Now let us look at binary search approach (method 2). Recall from Properties of key - setting keys reorders the data.table by key columns. Since the data is sorted, we don’t have to scan through the entire length of the column! We can instead use binary search to search a value in O(log n) as opposed to O(n) in case of vector scan approach, where n is the number of rows in the data.table.
+
+Since rows of each column of data.tables have contiguous locations in memory, the operations are performed in a very cache efficient manner (also contributes to speed).
+
+
+## Remplacement conditionnel très efficace
+
 
 A mettre dans `data.table`:
 
