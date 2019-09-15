@@ -2,7 +2,10 @@
 title: "`data.table`: un package efficace en `R`"
 author: "Lino Galiana"
 date: "`r format(Sys.Date(), format = '%d %B %Y')`"
-output: html_document
+output:
+  html_document:
+    css: ../style.css
+bibliography: ../bibliography.bib
 ---
 
 ```{r setup, include=FALSE}
@@ -10,11 +13,28 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-Plusieurs vignettes sont disponibles sur la page de documentation du package. N’hésitez pas à vous référer à ces documents pour répondre aux cas pratiques de cette partie
+`R` est réputé être un langage lent et de nombreux exemples sur internet proposent des comparatifs de vitesse qui suggèrent que `python` est plus rapide (nous avons déjà proposé un petit comparatif dans l'introduction de ce cours). Il est vrai que le langage de base `R` est lent mais, pour être honnête, avec le développement de `data.table` et `tidyverse`, la grammaire de base est de moins en moins utilisée de manière exclusive. Pour rendre réellement compte des performances du langage `R`, il convient donc de mesurer les vitesses d'exécution de ces deux approches. A ce jeu, `data.table` est très performant:
 
-* [Vignette semantics](https://rdrr.io/cran/data.table/f/vignettes/datatable-reference-semantics.Rmd)
-* [Keys and fast binary search](****)
-* 
+
+<!--------
+<div class="superbigimage">
+```{r, echo = FALSE, fig.height=30}
+knitr::include_graphics("./pics/comparatifH2O.png")
+```
+</div>
+-------->
+
+Dans ce chapitre, nous allons exlorer la manière dont `data.table` permet de résoudre efficacement de nombreuses tâches de maniement de données. Nous comparerons la vitesse et les besoins en mémoire par rapport à une approche `tidyverse`. Pour approfondir certains aspects du package (notamment l'indexation secondaire que nous laisserons de côté), plusieurs vignettes sont disponibles sur la page de documentation du package^[Ce cours couvre de manière transversale les vignettes du package: *"Introduction to data.table"* ; *"Keys and fast binary search based subset"* ; *"Reference semantics"* : *"Efficient reshaping using data.tables"*. Les autres vignettes *"Benchmarking data.table"* et *"Secondary indices and auto indexing"* sont intéressantes également. 
+
+**Sur la grammaire** La syntaxe `data.table` a mauvaise presse auprès des utilisateurs de `dplyr` (ce [post](https://stackoverflow.com/questions/21435339/data-table-vs-dplyr-can-one-do-something-well-the-other-cant-or-does-poorly) `stack overflow` est un bon exemple de la guerre larvée entre les utilisateurs des deux approches.^[On peut d'ailleurs y retrouver une réponse extensive d'Hadley Wickham (créateur dplyr) et des créateurs de `data.table` comparant et justifiant les deux approches.]). Il y a un coût d'apprentissage à la syntaxe `data.table` lorsqu'on est un habitué à la grammaire du `tidyverse`. Cependant, comme ces deux approches reposent sur la philosophie du `split`-`apply`-`combine`, passé la forme différente, ce qu'on sait faire avec l'un peut facilement être traduit avec l'autre. Je recommande vivement la consultation de ce [post](https://atrebas.github.io/post/2019-03-03-datatable-dplyr/) qui compare de manière extensive les deux grammaires. Les 5 verbes fondamentaux du `tidyverse` (`filter`, `select`, `mutate`, `arrange` et `summarise`) ont une traduction en `data.table`. Comme Hadley Wickham (créateur de `dplyr`) l'évoque, il est vrai que sans connaissance de `data.table`, les verbes équivalents sont moins intelligibles que ceux du `tidyverse`. En revanche, une fois habitué, cette syntaxe est très puissante et permet de réaliser des opérations très complexes de manière assez aisée (peut-être plus qu'en utilisant les *nested* dataframes du tidyverse)^[A titre personnel, maintenant que j'y suis habitué, j'ai une préférence pour la syntaxe `data.table` après avoir été un grand utilisateur/amateur du `tidyverse`.].
+
+
+**Pourquoi faire du `data.table` quand on sait faire du `tidyverse`?**  La citation ci-dessous, issue du [post](https://stackoverflow.com/questions/21435339/data-table-vs-dplyr-can-one-do-something-well-the-other-cant-or-does-poorly) déjà évoqué, souligne bien que les limites du `dplyr` compte tenu de l'objectif de ce cours, qui est de traiter efficacement de grosses bases de données en `R` correspond à un cas d'usage qui ne correspond pas à la construction du `tidyverse`: 
+
+> Memory and performance [...] to me, they're not that important. Most R users work with well under 1 million rows of data, and dplyr is sufficiently fast enough for that size of data that you're not aware of processing time. We optimise dplyr for expressiveness on medium data; feel free to use data.table for raw speed on bigger data.
+> Hadley Wickham ([lien](https://stackoverflow.com/questions/21435339/data-table-vs-dplyr-can-one-do-something-well-the-other-cant-or-does-poorly/27840349#27840349))
+
+
 
 
 data.table is an R package that provides an enhanced version of data.frames, which are the standard data structure for storing data in base R.

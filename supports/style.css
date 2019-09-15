@@ -56,3 +56,17 @@ CONTROL BUTTONS
 pre.plot {
   background-color: white !important;
 }
+
+/* BIG IMAGE */
+
+.superbigimage{
+      height = 100px;
+      overflow-y: scroll;
+      overflow-x: hidden;      
+      white-space: nowrap;
+}
+
+.superbigimage img{
+     max-width: none;
+}
+
