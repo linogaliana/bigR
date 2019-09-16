@@ -24,27 +24,85 @@ knitr::include_graphics("./pics/comparatifH2O.png")
 </div>
 -------->
 
-Dans ce chapitre, nous allons exlorer la manière dont `data.table` permet de résoudre efficacement de nombreuses tâches de maniement de données. Nous comparerons la vitesse et les besoins en mémoire par rapport à une approche `tidyverse`. Pour approfondir certains aspects du package (notamment l'indexation secondaire que nous laisserons de côté), plusieurs vignettes sont disponibles sur la page de documentation du package^[Ce cours couvre de manière transversale les vignettes du package: *"Introduction to data.table"* ; *"Keys and fast binary search based subset"* ; *"Reference semantics"* : *"Efficient reshaping using data.tables"*. Les autres vignettes *"Benchmarking data.table"* et *"Secondary indices and auto indexing"* sont intéressantes également. 
+Dans ce chapitre, nous allons exlorer la manière dont `data.table` permet de résoudre efficacement de nombreuses tâches de maniement de données. Nous comparerons la vitesse et les besoins en mémoire par rapport à une approche `tidyverse`. Pour approfondir certains aspects du package (notamment l'indexation secondaire que nous laisserons de côté), plusieurs vignettes sont disponibles sur la [page de documentation](https://github.com/Rdatatable/data.table/wiki/Getting-started) du package^[Ce cours couvre de manière transversale les vignettes du package: *"Introduction to data.table"* ; *"Keys and fast binary search based subset"* ; *"Reference semantics"* : *"Efficient reshaping using data.tables"*. Les autres vignettes *"Benchmarking data.table"* et *"Secondary indices and auto indexing"* sont intéressantes également. 
 
 **Sur la grammaire** La syntaxe `data.table` a mauvaise presse auprès des utilisateurs de `dplyr` (ce [post](https://stackoverflow.com/questions/21435339/data-table-vs-dplyr-can-one-do-something-well-the-other-cant-or-does-poorly) `stack overflow` est un bon exemple de la guerre larvée entre les utilisateurs des deux approches.^[On peut d'ailleurs y retrouver une réponse extensive d'Hadley Wickham (créateur dplyr) et des créateurs de `data.table` comparant et justifiant les deux approches.]). Il y a un coût d'apprentissage à la syntaxe `data.table` lorsqu'on est un habitué à la grammaire du `tidyverse`. Cependant, comme ces deux approches reposent sur la philosophie du `split`-`apply`-`combine`, passé la forme différente, ce qu'on sait faire avec l'un peut facilement être traduit avec l'autre. Je recommande vivement la consultation de ce [post](https://atrebas.github.io/post/2019-03-03-datatable-dplyr/) qui compare de manière extensive les deux grammaires. Les 5 verbes fondamentaux du `tidyverse` (`filter`, `select`, `mutate`, `arrange` et `summarise`) ont une traduction en `data.table`. Comme Hadley Wickham (créateur de `dplyr`) l'évoque, il est vrai que sans connaissance de `data.table`, les verbes équivalents sont moins intelligibles que ceux du `tidyverse`. En revanche, une fois habitué, cette syntaxe est très puissante et permet de réaliser des opérations très complexes de manière assez aisée (peut-être plus qu'en utilisant les *nested* dataframes du tidyverse)^[A titre personnel, maintenant que j'y suis habitué, j'ai une préférence pour la syntaxe `data.table` après avoir été un grand utilisateur/amateur du `tidyverse`.].
 
 
-**Pourquoi faire du `data.table` quand on sait faire du `tidyverse`?**  La citation ci-dessous, issue du [post](https://stackoverflow.com/questions/21435339/data-table-vs-dplyr-can-one-do-something-well-the-other-cant-or-does-poorly) déjà évoqué, souligne bien que les limites du `dplyr` compte tenu de l'objectif de ce cours, qui est de traiter efficacement de grosses bases de données en `R` correspond à un cas d'usage qui ne correspond pas à la construction du `tidyverse`: 
+**Pourquoi faire du `data.table` quand on sait faire du `tidyverse`?**  La citation ci-dessous, issue du [post](https://stackoverflow.com/questions/21435339/data-table-vs-dplyr-can-one-do-something-well-the-other-cant-or-does-poorly) déjà évoqué, souligne bien que l'objectif de ce cours, qui est de traiter efficacement de grosses bases de données en `R`, ne correspond pas à un cas d'usage autour duquel le `tidyverse` est construit: 
 
 > Memory and performance [...] to me, they're not that important. Most R users work with well under 1 million rows of data, and dplyr is sufficiently fast enough for that size of data that you're not aware of processing time. We optimise dplyr for expressiveness on medium data; feel free to use data.table for raw speed on bigger data.
 > Hadley Wickham ([lien](https://stackoverflow.com/questions/21435339/data-table-vs-dplyr-can-one-do-something-well-the-other-cant-or-does-poorly/27840349#27840349))
 
+# Principe
 
+`data.table` est un package qui propose une version améliorée des objets de base que sont les `data.frames`. Cependant, contrairement aux dataframes, on peut faire beaucoup plus que sélectionner des lignes ou des colonnes dans les crochets `df[...]`. En fait, on peut penser les instructions à l'intérieur du crochet comme des requêtes SQL mises en forme différemment. L'une des forces du package, sur lequel nous reviendrons, est que de nombreuses fonctionnalités de celui-ci reposent sur la modification par référence: pour créer une colonne `y = x+1` on n'a pas besoin de perdre du temps et mobiliser de la mémoire pour effectuer une copie temporaire du dataframe. 
 
+La syntaxe `data.table` prend la forme générale
 
-data.table is an R package that provides an enhanced version of data.frames, which are the standard data structure for storing data in base R.
-
-In contrast to a data.frame, you can do a lot more than just subsetting rows and selecting columns within the frame of a data.table, i.e., within [ ... ] (NB: we might also refer to writing things inside DT[...] as “querying DT”, in analogy to SQL). To understand it we will have to first look at the general form of data.table syntax, as shown below:
-
+```{r, eval = FALSE}
 DT[i, j, by]
-Take DT, subset/reorder rows using i, then calculate j, grouped by by.
+```
+
+R              |                 i         |              j         |      by
+---------------|---------------------------|------------------------|-----------
+SQL (exemples) |  `where` ou `order by`    |  `select` ou  `update` | `group by`
+
+On peut convertir un objet en data.table en utilisant `data.table::setDT` ou `data.table::as.data.table`. Pour créer un data.table, on utilisera la fonction `data.table::data.table` comme on utiliserait la fonction `data.frame` pour créer un dataframe. Comme avec un `tibble`, la visualisation est améliorée par rapport à un `data.frame` standard:
+
+```{r}
+dt <- data.table::data.table(x = runif(1e4), y = runif(1e3))
+dt
+```
+
+Les numéros de lignes sont écrits avec un `:`. Contrairement à un data.frame, les colonnes de type `character` ne sont jamais converties en `factor` par défaut. Un data.table n'utilise pas de `rownames`: il y a un outil beaucoup plus puissant, les clés sur lesquelles nous reviendrons.
+
+
+Les `data.table` héritant de caractéristiques des `data.frame`, on peut normalement leur appliquer toutes les méthodes qui s'appliquent aux `data.frames` de base. En particulier, on peut appliquer les fonctions de maniement des données du `tidyverse` aux `data.tables`: on peut utiliser `stringr` pour le maniement de caractères, `lubridate` pour des colonnes temporelles, etc. Avant d'appliquer une fonction du `tidyverse` à un `data.table`, il peut être utile de vérifier qu'il n'existe pas un équivalent déjà proposé par le package `data.table`. Par exemple, plutôt que d'utiliser la fonction `stringr::str_split_fixed` pour séparer une colonne en fonction d'un caractère, on utilisera `data.table::tstrsplit`:
+
+```{r}
+dt <- data.table::data.table(x = paste0("x_",runif(1e4)))
+df <- dplyr::as_tibble(dt)
+
+m <- microbenchmark::microbenchmark(
+  dt[,data.table::tstrsplit(dt$x, "_", fixed = TRUE)],
+  stringr::str_split_fixed(df$x,"_", n = 2)
+)
+ggplot2::autoplot(m)
+m
+```
+
+Sur ce problème simple, la solution `data.table` est 2 fois plus rapide. 
+On proposera, tout au long de ce chapitre, des alternatives `data.table` aux 5 verbes fondamentaux de la grammaire `tidyverse` (`filter`, `select`, `mutate`, `arrange` et `summarise`)
+
+L'utilisation de `dplyr` en production peut poser problème. En effet, il ne s'agit pas d'un langage de programmation fonctionnelle mais d'une syntaxe visant à faciliter le maniement de données. `dplyr` étant un package jeune, il n'est pas aussi stable que `data.table`: certaines fonctionnalités peuvent rapidement ne plus être maintenues au profit d'autres.
+
+## Aparté: sur l'évaluation standard 
+
+Il existe deux manières de faire référence à un objet en `R`:
+
+* L'évaluation standard:
+* L'évaluation non-standard: les noms font référence
+
+<!----
+les noms font référence aux valeurs. Si on tape `x`, c'est qu'on fait référence à l'objet dans l'environnement global qui s'appelle `x`
+---->
+
+Par exemple,
+
+Approche   | Evaluation standard (SE) | Evaluation non standard (NSE)  |
+-----------|--------------------------|--------------------------------|
+`dplyr`    |  `df %>% dplyr::filter(x < 10)` | `df %>% dplyr::filter(!!rlang::sym("x")<10)`
+`dplyr`    |  `df[x<10]`              | `df[get('x')<10]`
+
+En évaluation non standard, l'objet `x` est compris comme faisant parti de l'environnement en question (par exemple le dataframe `df` ou le data.table `dt`). Ce n'est que s'il n'existe pas dans cet environnement que `R` cherchera dans l'environnement global
+
+`data.table` et `dplyr` reposent tous deux sur l'ingration standard (on cite les noms de colonnes sous la forme `dt[,x]` ou `df %>% mutate(x)` ce qui relève de l'intégration standard). L'intégration de l'évaluation standard, qui est à la fois pratique dans une approche de programmation fonctionnelle (on peut passer des noms de variable en argument d'une fonction) et désirable pour la reproductibilité des programmes est ardue à mettre en oeuvre dans `dplyr` alors qu'elle est très simple en `data.table`^[Si vous ne me croyez pas, essayer de comprendre du premier coup la [vignette dplyr](https://dplyr.tidyverse.org/articles/programming.html) sur le sujet]. 
 
 # Import de données
+
+Pour montrer l'intérêt des fonctions d'import/export de `data.table` nous allons utiliser la base de données `sirus` 2017 (extrait de Sirene) qui avait servi 
+
 
 # Sémantique
 
