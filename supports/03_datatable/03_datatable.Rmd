@@ -101,7 +101,71 @@ En évaluation non standard, l'objet `x` est compris comme faisant parti de l'en
 
 # Import de données
 
-Pour montrer l'intérêt des fonctions d'import/export de `data.table` nous allons utiliser la base de données `sirus` 2017 (extrait de Sirene) qui avait servi 
+Pour montrer l'intérêt des fonctions d'import de `data.table` nous allons utiliser la base de données `sirus` 2017 (extrait de Sirene) qui avait servi au [hackathon](https://github.com/SSP-Lab/Hackathon-2018) de l'INSEE en 2018. Le fichier fait 2GB sur disque et environ 3.5 GB en RAM une fois importé entièrement dans `R`. 
+
+
+## Comparaison des fonctions accessibles
+
+Dans ce premier comparatif, on va comparer les vitesses d'exécution des fonctions:
+
+* `data.table::fread`
+* `readr::read_csv`
+* `read.csv` du langage de base
+
+On utilise le fichier `sirus_abstract.csv` qui est un extrait de sirus sur un million d'observations. 
+
+```{r, eval = FALSE}
+# Code ayant généré sirus_abstract.csv
+df <- data.table::fread("./data/sirus_2017.csv")
+data.table::fwrite(
+  df[sample(.N, size = 1e6, replace = FALSE)],
+  file = "./data/sirus_abstract.csv"
+)
+```
+
+La fonction de lecture du package `data.table` est `fread` pour *fast read*. Elle permet de lire des fichiers texte, qu'ils soient zippés ou non. Pour accélérer la routine, la fonction repose sur le principe du multithreading (cf. chapitre précédent) dans `C`. 
+
+**Exercice**
+
+Faire un profiling, avec la fonction `profvis::profvis` des méthodes suivantes (n'hésitez pas à consulter l'aide de chaque fonction pour obtenir le nom des arguments)
+
+1. `read.csv` en faisant attention à ne pas oublier l'option `stringsAsFactors = FALSE` et l'argument `sep`
+2. `readr::read_csv` en désactivant la barre de progrès
+3. `data.table::fread` en désactivant également la barre de progrès
+
+Je recommande d'appeler la commande `gc()` entre chaque commande pour mesurer de manière plus précise les besoins en mémoire spécifiques à chaque méthode. 
+
+```{r}
+
+profvis::profvis({
+  
+  df_1 <- read.csv("./data/sirus_abstract.csv",
+                   sep = ",",
+                   stringsAsFactors = FALSE) 
+  gc()  # gc pour ne pas biaiser la mesure des besoins mémoires
+  df_2 <- readr::read_csv("./data/sirus_abstract.csv",
+                          progress = FALSE) 
+  gc()  # gc pour ne pas biaiser la mesure des besoins mémoires
+  df_3 <- data.table::fread("./data/sirus_abstract.csv",
+                            showProgress = FALSE)
+  
+})
+```
+
+La fonction `data.table` est à la fois
+
+* plus rapide: 3 secondes contre 6 pour readr et 18 pour la fonction de base
+* moins gourmande en RAM: pour importer un jeu de données faisant environ 400MBe en RAM, il est nécessaire d'utiliser 900 MB pour readr et 1.3GB pour la fonction de base. `data.table` est lui très parcimonieux puisqu'il ne nécessite pas plus que les 400MB nécessaires.
+
+La fonction de base est très lente. Pourtant, elle est codée en `C` comme la fonction de `data.table`. Le principal problème avec la fonction de base, que les fonctions `readr` et `fread` évitent est d'importer l'ensemble du fichier sous forme `character` et convertir a posteriori les colonnes pouvant l'être sous des formats numériques. Les fonctions `read_csv` et `fread` inspectent le fichier avant de l'importer (les premières lignes pour `read_csv` ; les premières et dernières lignes pour `fread`)
+
+On peut utiliser l'option `verbose = TRUE` pour avoir une meilleure idée de la manière dont `fread` fonctionne
+
+```{r}
+df_3 <- data.table::fread("./data/sirus_abstract.csv",
+                            verbose = TRUE)
+```
+
 
 
 # Sémantique
