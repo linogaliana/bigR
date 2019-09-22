@@ -1,16 +1,8 @@
----
-title: "`data.table`: un package efficace en `R`"
-author: "Lino Galiana"
-date: "`r format(Sys.Date(), format = '%d %B %Y')`"
-output:
-  html_document:
-    css: ../style.css
-bibliography: ../bibliography.bib
----
+# `data.table`: un package efficace en `R`
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = "./../..")
+knitr::opts_knit$set(root.dir = "./../../..")
 ```
 
 
@@ -435,45 +427,10 @@ Note that since we allow assignment by reference without quoting column names wh
 
 Lorsqu'on désire passer un `data.table` à une fonction où sont effectués des changements par référence, on peut créer une copie de l'objet initial pour ne pas le modifier par référence (sans copie, même dans des environnements différents, l'objet parent peut être modifié). Dans ce cas, on utilise la fonction `copy` de la manière suivante `newdf <- data.table::copy(df)` et ainsi on peut modifier `newdf` sans crainte. 
 
-## La famille des fonctions `set*`
 
-Avec l'opérateur `:=`, les fonctions commençant par `set` permettent d'actualiser un `data.table` par référence:
+# Subsetting
 
-* `setnames`: renommer des variables
-* `setorder` et `setorderv`: trier les lignes en fonction d'une ou plusieurs colonnes
-* `setcolorder`: changer l'ordre des colonnes
-* `setDT` et `setDF`: transformer un df en dt ou vice-versa
-
-|`data.table` | `dplyr`     |
-|-------------|-------------|
-|`setnames`   | `rename`    |
-| `setorder`  | `arrange`   |
-|`setcolorder`| `select(..., everything())`
-
-**Exercice**
-
-1. Créer une variable aléatoire `x` dans le `data.table` `df` et la renommer `u` en utilisant les arguments `old` et `new` de `data.table::setnames` (vous pouvez retrouver dans l'aide d'autres manières de modifier les noms avec `setnames`) 
-2. Trier par la variable `region` et `adr_depcom`
-3. Mettre les colonnes `adr_et_l6` en première position
-
-
-
-# Requêtes sur des lignes
-
-
-Dans le contexte d'un `data.table`, i.e. au sein des crochets `[]`, nous avons vu qu'on pouvait faire référence aux colonnes comme des variables. On l'a vu avec les colonnes mais c'est vrai également lorsqu'on fait une requête dans la première dimension, les lignes. Les requêtes sur la dimension `i` peuvent servir d'alternative à la fonction `dplyr::filter` (mais les requêtes sur la dimension `i` permettent de faire plus comme nous le verrons avec le remplacement conditionnel) 
-
-```{r}
-df[get('region') == 75] # SE
-df[region == 75] # NSE
-```
-
-%in%
-%chin%
-%between%
-%like%
-
-
+## subsetting des lignes
 
 Within the frame of a data.table, columns can be referred to as if they are variables, much like in SQL or Stata. Therefore, we simply refer to dest and month as if they are variables. A comma after the condition in i is not required. But flights[dest == "JFK" & month == 6L, ] would work just fine. In data.frames, however, the comma is necessary.
 
@@ -607,6 +564,7 @@ Setting a key does two things:
     
 set* and :=
 
+In data.table, the := operator and all the set* (e.g., setkey, setorder, setnames etc..) functions are the only ones which modify the input object by reference.
 
 Once you key a data.table by certain columns, you can subset by querying those key columns using the .() notation in i.
 
