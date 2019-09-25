@@ -6,6 +6,7 @@ knitr::opts_knit$set(root.dir = "./../../..")
 ```
 
 
+
 `R` est réputé être un langage lent et de nombreux exemples sur internet proposent des comparatifs de vitesse qui suggèrent que `python` est plus rapide (nous avons déjà proposé un petit comparatif dans l'introduction de ce cours). Il est vrai que le langage de base `R` est lent mais, pour être honnête, avec le développement de `data.table` et `tidyverse`, la grammaire de base est de moins en moins utilisée de manière exclusive. Pour rendre réellement compte des performances du langage `R`, il convient donc de mesurer les vitesses d'exécution de ces deux approches. A ce jeu, `data.table` est très performant:
 
 
@@ -36,7 +37,7 @@ L'utilisation de `dplyr` en production peut poser problème. En effet, il ne s'a
 
 
 
-# Principe
+## Principe
 
 `data.table` est un package qui propose une version améliorée des objets de base que sont les `data.frames`. Cependant, contrairement aux dataframes, on peut faire beaucoup plus que sélectionner des lignes ou des colonnes dans les crochets `df[...]`. En fait, on peut penser les instructions à l'intérieur du crochet comme des requêtes SQL mises en forme différemment. L'une des forces du package, sur lequel nous reviendrons, est que de nombreuses fonctionnalités de celui-ci reposent sur la modification par référence: pour créer une colonne `y = x+1` on n'a pas besoin de perdre du temps et mobiliser de la mémoire pour effectuer une copie temporaire du dataframe. 
 
@@ -79,7 +80,7 @@ Sur ce problème simple, la solution `data.table` est 2 fois plus rapide. On pro
 
 
 
-## Aparté: sur l'évaluation standard 
+### Aparté: sur l'évaluation standard 
 
 
 Il existe deux manières de faire référence à un objet en `R`:
@@ -103,12 +104,12 @@ En évaluation non standard, l'objet `x` est compris comme faisant partie de l'e
 `data.table` et `dplyr` reposent tous deux sur l'ingration standard (on cite les noms de colonnes sous la forme `dt[,x]` ou `df %>% mutate(x)` ce qui relève de l'intégration standard). L'intégration de l'évaluation standard, qui est à la fois pratique dans une approche de programmation fonctionnelle (on peut passer des noms de variable en argument d'une fonction) et désirable pour la reproductibilité des programmes est ardue à mettre en oeuvre dans `dplyr` alors qu'elle est très simple en `data.table`^[Si vous ne me croyez pas, essayer de comprendre du premier coup la [vignette dplyr](https://dplyr.tidyverse.org/articles/programming.html) sur le sujet]. 
 
 
-# Lecture et écriture de données
+## Lecture et écriture de données
 
 Pour montrer l'intérêt des fonctions d'import de `data.table` nous allons utiliser la base de données `sirus` 2017 (extrait de `Sirene`) qui avait servi au [hackathon](https://github.com/SSP-Lab/Hackathon-2018) de l'INSEE en 2018. Le fichier fait 2GB sur disque et environ 3.5 GB en RAM une fois importé entièrement dans `R`. 
 
 
-## Comparaison des fonctions de lecture
+### Comparaison des fonctions de lecture
 
 Dans ce premier comparatif, on va comparer les vitesses d'exécution des fonctions:
 
@@ -170,7 +171,7 @@ df_3 <- data.table::fread("./data/sirus_abstract.csv",
                             verbose = TRUE)
 ```
 
-## Les options de la fonction `fread`
+### Les options de la fonction `fread`
 
 Jusqu'à présent, on importait le fichier sans considération de l'information qui nous intéressait. Il arrive souvent que l'on ne soit intéressé que par une partie d'un fichier (certaines colonnes, un échantillon de lignes). Pour cela, on peut utiliser quelques options de la fonction `data.table::fread`:
 
@@ -244,13 +245,13 @@ La commande `cmd` permet d'exécuter beaucoup plus que des commandes `grep`. Tou
 ]
 
 
-## Import d'autres formats de données
+### Import d'autres formats de données
 
 * Formats binaires `fst`: c'est un format beaucoup plus rapide à l'import que le csv. La fonction `fst::read_fst` propose une option `as.data.table` qu'on peut évaluer à `TRUE` (la valeur par défaut est `FALSE` ce qui importe sous forme de `data.frame`).
 * Formats `sas`: pas de miracle, il faut utiliser la fonction `haven::read_sas` et convertir en `data.table` avec `data.table::setDT` function. La version de développement de `haven` intègre depuis Juillet 2019 des paramètres qui peuvent être précieux pour réduire les besoins mémoires et CPU lors de l'import: `col_select` et `n_max`. Ces fonctionnalités ne sont pas encore disponibles sur la version `CRAN` en revanche.
 
 
-## Comparaison des écritures
+### Comparaison des écritures
 
 1. Faire `microbenchmark`
 
@@ -290,9 +291,9 @@ profvis::profvis({
 file.remove("datatable.csv","readr.csv")
 ```
 
-# La sémantique `data.table`
+## La sémantique `data.table`
 
-## Retour sur les copies
+### Retour sur les copies
 
 On a évoqué, lors du premier chapitre, la différence entre la copie en place et la copie en modification. On distingue parfois de :
 
@@ -319,7 +320,7 @@ df$x[df$id == "b"] <- y[1:10] # (2) -- subassign in column 'c'
 
 Jusqu'à `R 3.1` (avril 2014), les copies profondes étaient automatiques. Cela amenait à copier plus d'une fois les objets. Une amélioration significative de performance a eu lieu avec la v3.1. L'assignation (1) ne provoque plus une copie profonde mais une copie superficielle. En revanche, même depuis 3.1+, l'opération (2) provoque toujours une copie profonde de l'ensemble de la colonne. Cela signifie que plus de colonnes sont modifiées dans la même assignation plus il y a de copies et donc de besoin mémoire
 
-## L'opérateur `:=`
+### L'opérateur `:=`
 
 L'opérateur `data.table` `:=` est construit autour du principe du passage par référence qui évite donc la copie superficielle comme profonde. On peut le comprendre comme le `mutate` de `dplyr` sauf que l'opérateur `data.table` n'effectue pas de copie superficielle contrairement à la fonction `dplyr` (ce [thread stack overflow](https://stackoverflow.com/questions/21701537/does-mutate-change-tbl-by-reference) peut être consulté sur le sujet). `:=` utilise un pointeur d'où la parcimonie en termes de mémoire
 
@@ -392,6 +393,8 @@ df[,'w' := runif(.N)]
 df[,'w2' := w - mean(w)]
 gc()
 
+
+
 # Approche dplyr
 df2 <- df2 %>%
   dplyr::mutate('x_cell' = 1000*round(x/1000), 'y_cell' = 1000*round(y/1000))
@@ -427,27 +430,94 @@ Note that since we allow assignment by reference without quoting column names wh
 
 Lorsqu'on désire passer un `data.table` à une fonction où sont effectués des changements par référence, on peut créer une copie de l'objet initial pour ne pas le modifier par référence (sans copie, même dans des environnements différents, l'objet parent peut être modifié). Dans ce cas, on utilise la fonction `copy` de la manière suivante `newdf <- data.table::copy(df)` et ainsi on peut modifier `newdf` sans crainte. 
 
+### La famille des fonctions `set*`
 
-# Subsetting
+Avec l'opérateur `:=`, les fonctions commençant par `set` permettent d'actualiser un `data.table` par référence:
 
-## subsetting des lignes
+* `setnames`: renommer des variables
+* `setorder` et `setorderv`: trier les lignes en fonction d'une ou plusieurs colonnes
+* `setcolorder`: changer l'ordre des colonnes
+* `setDT` et `setDF`: transformer un df en dt ou vice-versa
 
-Within the frame of a data.table, columns can be referred to as if they are variables, much like in SQL or Stata. Therefore, we simply refer to dest and month as if they are variables. A comma after the condition in i is not required. But flights[dest == "JFK" & month == 6L, ] would work just fine. In data.frames, however, the comma is necessary.
+|`data.table` | `dplyr`     |
+|-------------|-------------|
+|`setnames`   | `rename`    |
+| `setorder`  | `arrange`   |
+|`setcolorder`| `select(..., everything())`
 
-.N 
-.N is a special built-in variable that holds the number of observations in the current group. 
+**Exercice**
 
+1. Créer une variable aléatoire `x` dans le `data.table` `df` et la renommer `u` en utilisant les arguments `old` et `new` de `data.table::setnames` (vous pouvez retrouver dans l'aide d'autres manières de modifier les noms avec `setnames`) 
+2. Trier par la variable `region` et `adr_depcom`
+3. Mettre les colonnes `adr_et_l6` en première position
+
+
+
+## Requêtes sur des lignes
+
+
+Dans le contexte d'un `data.table`, i.e. au sein des crochets `[]`, nous avons vu qu'on pouvait faire référence aux colonnes comme des variables. On l'a vu avec les colonnes mais c'est vrai également lorsqu'on fait une requête dans la première dimension, les lignes. Les requêtes sur la dimension `i` peuvent servir d'alternative à la fonction `dplyr::filter` (mais les requêtes sur la dimension `i` permettent de faire plus comme nous le verrons avec le remplacement conditionnel) 
+
+```{r}
+df[region == 75] # NSE
+# df[get('region') == 75] # SE
+```
+
+**Exercice**
+
+1. Comparer la vitesse et le besoin mémoire de l'approche `data.table` et de `dplyr::filter` en ne sélectionnant les lignes situées dans les départements 75, 77, 78, 91, 92, 93, 94, 95 (variable `region`) apparaîssent les termes `ECOLE`, `COLLEGE` ou `LYCEE` (et leur pluriel) dans la variable `denom` (vous pouvez utiliser une expression régulière ou `%in%`) 
+
+```{r}
+profvis::profvis({
+df[(grepl("ECOLE(S?)|COLLEGE(S?)|LYCEE(S?)",denom)) & (region %in% c(75, 77, 78, 91, 92, 93, 94, 95))]
+  df %>% dplyr::filter((grepl("ECOLE(S?)|COLLEGE(S?)|LYCEE(S?)",denom)) & (region %in% c(75, 77, 78, 91, 92, 93, 94, 95)))
+})
+```
+
+Le package comporte quelques fonctions qui peuvent être pratiques pour effectuer des opérations de filtre:
+
+* `%in%`: Extension du `%in%` de base
+* `%chin%`: Equivalent mais pour des variables character 
+* `%between%`: Comme le nom l'indique, `x %between% c(a,b)` revient à `x>=a & x<=b` 
+* `%like%`: identifier les variables qui matchent un *pattern*. 
+
+Pour obtenir simplement un échantillon des données, on peut faire la commande suivante (en supposant qu'on désire 1000 lignes)
+
+```{r}
+df[sample(.N, size = 1e4, replace = FALSE)]
+```
+
+`.N` qu'on a déjà rencontré, est une fonction construite pour retourner le nombre d'observations par groupe (les variables n'étant ici pas groupées, on renvoie le nombre de lignes).
+
+<!---
 .I
 .SD
-
-sorting: We can use the R function order() to accomplish this.
-
-Pour prendre un sample: dt[sample(.N, 1e3, replace = FALSE)]
-
-## := et passage par référence
+---->
 
 
-## Subsetting des colonnes
+### Remplacement conditionnel
+
+Les requêtes sur la dimension `i` peuvent servir à créer de nouvelles colonnes. Dans ce cas, on peut penser la dimension `i` comme un `update` en SQL ou un `case when`
+
+```{r}
+profvis::profvis({
+  
+df[,'iledefrance' := FALSE]
+df[region %in% c(75, 77, 78, 91, 92, 93, 94, 95), iledefrance := TRUE]
+
+gc()
+
+df %>% dplyr::mutate(region = dplyr::case_when(
+  region %in% c(75, 77, 78, 91, 92, 93, 94, 95) ~ TRUE,
+  TRUE ~ FALSE
+))
+
+})
+
+```
+
+
+### Subsetting des colonnes
 
 
 1 seule colonne: flights[, arr_delay] NSE ou flights[, get('arr_delay')] SE  flights[["arr_delay"]]
@@ -564,7 +634,6 @@ Setting a key does two things:
     
 set* and :=
 
-In data.table, the := operator and all the set* (e.g., setkey, setorder, setnames etc..) functions are the only ones which modify the input object by reference.
 
 Once you key a data.table by certain columns, you can subset by querying those key columns using the .() notation in i.
 
@@ -617,7 +686,7 @@ Now let us look at binary search approach (method 2). Recall from Properties of 
 Since rows of each column of data.tables have contiguous locations in memory, the operations are performed in a very cache efficient manner (also contributes to speed).
 
 
-## Remplacement conditionnel très efficace
+### Remplacement conditionnel très efficace
 
 
 A mettre dans `data.table`:
