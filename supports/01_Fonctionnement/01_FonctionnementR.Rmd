@@ -21,7 +21,7 @@ knitr::knit_engines$set(python = reticulate::eng_python)
 >
 > Donald Knuth
 
-# Introduction
+## Introduction
 
 L'objectif général du cours est d'offrir une introduction aux possibilités qu'offre `R` pour faire des calculs lourds et lire des bases de données volumineuses. Les deux principales ressources disponibles sur le sujet sont les ouvrages *Efficient R Programming* [@gillespie2016efficient] et *Advanced R* [@wickham2014advanced]^[Dans ce cours, on adoptera la vision de l'efficience au sens d'efficience algorithmique, i.e. la vitesse à laquelle un programme s'exécute et les ressources nécessaires pour l'accomplissement de celui-ci. Nous parlerons peu de la notion d'efficacité de programmation: quantité de travail utile qu'un programmeur peut réaliser par unité de temps. A cet égard, des astuces et règles utiles sont présentées dans la Formation *travail collaboratif sous R* et dans le livre de @gillespie2016efficient]. Cependant, ce cours approfondira des aspects superficiels de ces livres, notamment la puissance du package `data.table`.
 
@@ -32,11 +32,11 @@ Quand on se préoccupe d'efficacité ou de gestion de mémoire, le principal ris
 Alors que le volume de données disponibles et pouvant être combinées est croissant, le ralentissement des progrès technologiques dans l'industrie des microprocesseurs (ralentissement de la <span style="color:royalblue">**loi de Moore</span>**^[Selon cette loi, le nombre de transistors composant un micro-processeur double tous les 18 mois à coût constant. Cela implique une capacité de calcul croissant à une grande vitesse. Cette observation empirique a été globalement respectée jusqu'en 2016, date depuis laquelle les progrès ont marqué le pas.]) justifie l'utilisation croissante de capacités de calculs parallèles. L'exploitation des systèmes multi-coeurs, qui sont maintenant communs, permet de s'abstraire, partiellement, de l'effet limitant du ralentissement de la loi de Moore sur les capacités de traitement. 
 
 
-## Plan du cours
+### Plan du cours
 
 La première étape nécessaire pour être en mesure d'être efficace en `R` et de comprendre le fonctionnement du langage. Comprendre la manière dont `R` fonctionne permet de comprendre l'intérêt de la vectorisation ainsi que la manière dont la mémoire fonctionne en `R`. Ce détour par le language de base permettra de mieux comprendre les raisons pour lesquelles `R` est un langage plus lent qu'un langage compilé et limité lorsqu'il est question de données volumineuses.
 
-## Packages nécessaires
+### Packages nécessaires
 
 Les packages que nous utiliserons principalement sont les suivants:
 
@@ -65,7 +65,7 @@ if (Sys.getenv("LOCAL")==""){
 </div>
 
 
-# Outils utiles pour mesurer l'exécution de fonctions
+## Outils utiles pour mesurer l'exécution de fonctions
 
 Nous allons utiliser deux types d'approches pour minuter la vitesse d'exécution d'un programme:
 
@@ -77,7 +77,7 @@ On utilise généralement la première approche lorsqu'on veut optimiser une op�
 L'utilisation de la CPU et de la RAM peut être contrôlée en temps réel avec le gestionnaire des tâches en Windows ou la commande `htop` sur `Linux`. Avec ces outils, on peut contrôler les processus en cours, l'utilisation des différents coeurs d'un ordinateur, la RAM utilisée et celle disponible. 
 
 
-## Microbenchmark
+### Microbenchmark
 
 La fonction `system.time()` est la manière la plus simple de mesurer le temps d'exécution d'une ou plusieurs fonctions. Cependant, le temps d'exécution observé n'est qu'une réalisation d'une variable aléatoire et dépend de l'utilisation, à l'instant *t*, des ressources d'un ordinateur. Pour obtenir une image plus fidèle de la vitesse d'exécution d'une fonction, et être en mesure de comparer de manière plus adéquate des temps d'exécution, le package `microbenchmark` est très pratique. Comme les fonctions évaluées sont répétées de nombreuses fois (par défaut 100), on utilise `microbenchmark` pour des opérations rapides (quitte à utiliser les fonctions évaluées sur un échantillon plus petit de données). 
 
@@ -120,7 +120,7 @@ ggplot2::autoplot(micro)
 
 Nous reviendrons sur ce code dans le chapitre `data.table`. Ce benchmark nous indique déjà que l'approche `data.table` est plus rapide (l'ordre de grandeur est ici de l'ordre de 1 pour 4 par rapport à `dplyr` et 1 pour 40 par rapport à la solution R base.)
 
-## Profiling
+### Profiling
 
 Le *profiling* consiste à contrôler le temps d'exécution et l'usage mémoire d'une série de commandes. C'est une approche particulièrement bien adaptée à des codes modulaires (découpés sous formes de *chunks*) puisqu'on peut vraiment contrôler les parties de code les plus gourmandes en temps ou en mémoire. Nous aurons l'occasion, dans les exercices, d'appliquer plusieurs fois la fonction `profvis` du package du même nom 
 
@@ -202,12 +202,12 @@ print(
 
 Vous pouvez apprécier la différence de vitesse entre un code vectorisé (`cumsum`) et des approches plus artisanales, qui sont également moins lisibles. 
 
-# Comprendre les ordinateurs pour comprendre `R`
+## Comprendre les ordinateurs pour comprendre `R`
 
 Un ordinateur est une réalisation concrête d’une machine de Turing, c'est-à-dire une
 machine traitant des informations et capable en principe de prendre comme donnée n’importe quel algorithme et de l’exécuter.
 
-## Principes généraux
+### Principes généraux
 
 Les deux principaux constituants d’un ordinateur sont la **mémoire principale** et le **processeur** ou **CPU** (Central Processing Unit). La mémoire principale permet de stocker de l’information (programmes et données), tandis que le processeur exécute pas à pas les instructions composant les programmes.
 
@@ -238,14 +238,14 @@ Si l’architecture de Von-Neumann se caractérise par sa grande souplesse, elle
 
 Le **système d'exploitation** dirige l'utilisation des ressources d'un ordinateur. Cela donne l'illusion que de nombreux processus peuvent être exécutés en même temps. Cela provient de la conjonction de deux effets : d’une part, les instructions exécutées par l’ordinateur sont extrêmement rapides (de l’ordre de quelques dizaines de millisecondes) et d’autre part, le système d’exploitation utilise les temps d’attente dans l’exécution d’une tâche pour orienter les ressources de l’ordinateur (micro-processeur + RAM...) vers l’exécution d’une autre tâche. Le fait que la plupart des ordinateurs soient maintenant dotés de plusieurs processeurs permet, si les applications sont adaptées, d’exécuter réellement plusieurs tâches simultanément. Malgré tout, le nombre d’instructions effectuées simultanément reste habituellement très inférieur au nombre d’applications en fonctionnement simultané.
 
-### Langage interprété vs compilé
+#### Langage interprété vs compilé
 
 `R` est un langage interprété (comme `python`), par opposition aux langages compilés (`C++` par exemple). Par rapport à l’interpréteur, le compilateur présente l’inconvénient de retarder l’exécution d’un programme mais une fois compilé, le fichier exécutable obtenu est particulièrement rapide (moins de surcouche vers le langage machine).
 
 Certains packages (par exemple `compiler`) proposent d'accélérer les traitements en transformant des exécutions interprétées (du code `R` standard) en instructions compilées (`bytecode`). C'est une méthode, assez simple puisque c'est le package qui gère cette traduction, pour accélérer certains programmes. Depuis `R 3.5.0` (avril 2018), les fonctions intégrées à des packages sont automatiquement compilées, ce qui accélère les temps d'exécution sans effort de programmation. 
 
 
-## Le processeur (CPU)
+### Le processeur (CPU)
 
 
 Le processeur (ou micro-processeur) est considéré comme le coeur de l’ordinateur. C’est lui qui attribut des tâches simples aux périphériques et à la RAM tandis qu’il exécute les tâches les plus compliquées. Il est responsable de l’exécution d’un programme. Le processeur est un circuit éléctronique complexe (circuit intégré) qui exécute chaque instruction très rapidement, en quelques **cycles d’horloges**. Toute l’activité de l’ordinateur est cadencée par une horloge unique, de façon à ce que tous les circuits électroniques travaillent tous ensemble de façon synchronisée. La fréquence de cette horloge s’exprime en `MHz` (millions de cyles par seconde) ou `GHz` (milliards de cycles par secondes). Par exemple, le processeur *Intel Core i5-6300U* qui équipe les postes nomades INSEE possède une horloge cadencée à 2,40 GHz.
@@ -284,7 +284,7 @@ quatre étapes lors du traitement des instructions (architecture de Von Neumann)
   
 ------>
 
-## La mémoire vive ou RAM (random access memory)
+### La mémoire vive ou RAM (random access memory)
 
 La mémoire est divisée en bytes qui sont des emplacements (des cases mémoires contiguës) de taille fixe utilisés pour stocker instructions et données. Il est facile de confondre les termes `bit` et `byte`: un `bit` (contraction de *binary digit*) est l'élement de base de l'ordinateur, le `byte` stocke plusieurs éléments.
 En principe, la taille d’un emplacement mémoire pourrait être quelconque ; en fait, la plupart des ordinateurs en service aujourd’hui utilisent des emplacements mémoire d’un octet (soit 8 bits)^[Aujourd'hui, les termes bytes et octets sont utilisés de manière relativement indistincte même si, conceptuellement, il s'agit de notions différentes. Le byte est le nombre de bits nécessaire pour coder un caractère. Il s'agit ainsi de la plus petite unité logique adressable par un programme sur un ordinateur. Les bytes de 8 bits se sont généralisés dans les ordinateurs modernes même si, conceptuellement, les bytes pouvaient être de longueur différente. Par le passé, les caractères ASCII dominaient l'informatique. Il s'agissait d'un ensemble de 128 caractères qui ne nécessitaient que 7 bits ($2^7=128$) mais en utilisaient 8 pour optimiser la performance. La définition d'un octet est d'être une unité composée de 8 bits. C'est la généralisation des bytes à 8 bits qui explique la correspondance entre ces deux termes. En informatique, si l'on veut explicitement désigner une quantité de huit bits, on utilise le mot octet ; tandis que si l'on veut exprimer l'unité d'adressage indépendamment du nombre de bits, on utilise le mot byte. ]. Les séquences de bytes sont elles-mêmes regroupées en mots mémoire dont la taille est déterminée par celle des registres de l'ordinateur (32 ou 64 bits)^[Les processeurs 32 bits ne peuvent normalement pas adresser plus de 4 Gio ($2^{32}$ octets) de mémoire centrale, tandis que les processeurs 64 bits peuvent en adresser 16 Eio ($2^{64}$ octets). C'est pourquoi dès qu'il y a plus de 4 Gio de RAM sur une machine, la mémoire au-delà de ce seuil ne sera directement adressable qu'en mode 64 bits].
@@ -351,7 +351,7 @@ appelé langage assembleur
 ------------------>
 
 
-## Comparer la performance de R par rapport à d'autres utilisateurs
+### Comparer la performance de R par rapport à d'autres utilisateurs
 
 Le package `benchmarkme` est conçu pour faire tourner quelques calculs standardisés afin de comparer la performance de `R` à d'autres utilisateurs qui ont accepté de partager la performance de leur ordinateur. 
 
@@ -371,7 +371,7 @@ plot(res)
 
 Le poste utilisé pour les tests a des performances médianes: sans être catastrophique, il n'est pas non plus exceptionnel.
 
-# Retour à `R`: appels de fonctions
+## Retour à `R`: appels de fonctions
 
 > To understand computations in R, two slogans are helpful:
 >
@@ -466,7 +466,7 @@ ggplot2::autoplot(results_plus_one)
 ```
 </div>
 
-### Aparté: comparaison des boucles avec Python et C++
+#### Aparté: comparaison des boucles avec Python et C++
 
 De nombreux tests de performance sont disponibles en ligne, notamment sur cette [page](https://h2oai.github.io/db-benchmark/). On propose un test plus modeste de comparaison des performances de `Python`, `R` et `C++`. Pour exécuter du code `Python` depuis `R`, on utilise le package `Reticulate`^[Pour les personnes utilisant l'intégration continue, cela nécessite d'adapter le dépôt `rocker` généralement utilisé. Un exemple que je propose est le dépôt `pocker`, disponible sur [dockerhub](https://cloud.docker.com/u/linogaliana/repository/docker/linogaliana/pocker) [github](https://github.com/linogaliana/pocker), [gitlab](https://gitlab.com/linogaliana/pocker). Pour une explication de la raison d'être d'une image `docker` de ce type, ce [post](https://linogaliana.netlify.com/post/pocker/pocker-a-docker-container-to-use-r-and-python-together/)].
 
@@ -593,13 +593,13 @@ ggplot2::ggplot(data = exec_times) + ggplot2::geom_violin(ggplot2::aes(x = langa
 
 
 
-# Mémoire
+## Mémoire
 
 `R` est un langage qui a une utilisation intensive de la RAM. C'est ce qui permet au langage d'être assez rapide mais créé des difficultés lorsque les données sont volumineuses dans un environnement où la RAM est contrainte (les postes nomades de l'INSEE ont 8Go de RAM ; les ressources d'un serveur sont partagées entre tous les utilisateurs). Dans cette partie, nous verrons qu'outre l'import de données, la gourmandise de `R` provient de la manière dont les objets sont copiés en mémoire lorsqu'ils sont modifiés.
 
 Le livre de @wickham2014advanced est une ressource précieuse sur le sujet. De nombreux exemples de cette section sont tirés de cet ouvrage. On utilisera le package `pryr` en supplément de `profvis` pour contrôler l'usage mémoire
 
-## Bases de la mémoire en `R`
+### Bases de la mémoire en `R`
 
 Pour comprendre les besoins mémoire de `R`, on peut exécuter le code suivant qui inspecte la taille mémoire d'un vecteur en fonction de sa longueur:
 
@@ -632,7 +632,7 @@ pryr::object_size(rep("banana", 10))
 ```
 
 
-## Utilisation de la mémoire
+### Utilisation de la mémoire
 
 `pryr::mem_used()` permet de connaître la mémoire consommée par l'ensemble des objets `R`. La consommation de mémoire totale est néanmoins différente car cela n'inclut que les objets stockés actuellement en mémoire et pas l'ensemble de la mémoire qui a été allouée par `R`. Par exemple,  si un objet volumineux a été supprimé, `R` ne rend pas nécessairement la mémoire libérée à l'OS. De même, ce chiffre n'incorpore pas le poids mémoire de l'interpréteur `R` (ni de l'IDE utilisé, par exemple `Rstudio`). Pour connaître le poids mémoire effectif, il faut utiliser `htop` (Linux) ou le gestionnaire de tâches de Windows.   
 
@@ -662,7 +662,7 @@ pryr::mem_change(rm(y))
 Les problèmes de saturation de la RAM se traduisent généralement par un message du type `cannot allocate a vector of size ** Mb` (quand la session ne *crash* pas...). Même si `R` effectue des GC fréquemment, il me semble nécessaire d'appeler la commande `gc()` de temps en temps (en particulier après l'appel d'une fonction ayant effectué un gros traitement) pour rendre de la RAM à l'OS. Sur un serveur partagé, cela permet de réduire les risques de saturation à cause de sessions inactives qui n'ont plus besoin de la mémoire qu'elles mobilisent^[@wickham2014advanced dans son ouvrage développe l'idée que la commande `gc()` est inutile car la GC étant automatique, évoquer `gc()` ne libère aucun espace mémoire mais prend du temps. En pratique, je trouve que c'est faux (`gc()` permet souvent de libérer plusieurs `gigas`) et que sur un serveur partagé, c'est une règle de bonne conduite pour permettre à chacun d'avoir des chances de disposer de mémoire quand il en a besoin.]. 
 
 
-## Modification d'objets
+### Modification d'objets
 
 Deux manières de modifier un objet sont possibles en `R`:
 
@@ -772,7 +772,7 @@ for(i in 1:5) {
 ```
 </div>
 
-## Pré-allocation de la mémoire
+### Pré-allocation de la mémoire
 
 A cause du comportement de copie, il faut faire attention à l'allocation de mémoire lorsqu'on désire ajouter des éléments à un objet. Comme nous allons le voir, il est préférable de pré-allouer la taille d'un objet plutôt que de le faire croître ou alors utiliser une liste. 
 
@@ -848,12 +848,12 @@ La pré-allocation est une manière de réduire les besoins mémoires et donc d'
 
 
 
-# Conclusion
+## Conclusion
 
 **TO DO**
 
 
-# References
+## References
 
 
 
