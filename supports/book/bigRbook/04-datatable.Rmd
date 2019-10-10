@@ -1,5 +1,7 @@
 # `data.table`: un package efficace en `R`
 
+<script src="./js/hideOutput.js"></script>
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(root.dir = "./../../..")

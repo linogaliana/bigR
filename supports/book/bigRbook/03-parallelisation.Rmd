@@ -1,6 +1,6 @@
 # Fondamentaux de l'optimisation en R
 
-<script src="../js/hideOutput.js"></script>
+<script src="./js/hideOutput.js"></script>
 
 
 ```{r setup, include=FALSE}
