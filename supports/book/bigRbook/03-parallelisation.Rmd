@@ -90,7 +90,7 @@ Le comparatif ci-dessous compare la vitesse des deux approches sur un système `
 **TO DO sur une machine Linux -----> **
 
 <!--- <div class="fold s">   --->
-```{r, eval = FALSE}
+```{r FORKSOCK, eval = FALSE}
 df <- split(iris, iris$Species)
 
 
@@ -150,7 +150,7 @@ library(doParallel)
 
 Pour se simplifier la vie, on va importer le package `foreach`^[L'ensemble des programmes de ce `markdown` pourraient être exécutés sans importer le package `foreach` dans son ensemble mais uniquement les fonctions `%dopar%` et `%do%`, par exemple avec le package `import`: `import::from("data.table","%dopar%")` et `import::from("data.table","%do%")` ]:
 
-```{r}
+```{r charge foreach}
 library(foreach)
 ```
 
@@ -161,7 +161,7 @@ Le package `foreach` propose deux fonctions utiles pour le traitement d'opérati
 * `%dopar%`: propose une alternative à `lapply` pour un traitement parallélisé des opérations
 
 
-```{r, warning=TRUE}
+```{r foreach no parallel, warning=TRUE}
 microbenchmark::microbenchmark(
   foreach(i=1:100) %do% sqrt(i),
   foreach(i=1:100) %dopar% sqrt(i),
@@ -182,7 +182,7 @@ Il existe de multiples manières d'initialiser la parallélisation. Le modèle c
 4. On ferme les clusters. C'est important de le faire après chaque parallélisation pour éviter de saturer la mémoire et la CPU avec des processus inactifs^[Sur Linux, avec la commande `htop`, on peut voir l'ensemble des processus actifs sur un serveur. On peut facilement identifier ceux liés à des processus esclaves: ceux-ci saturent le serveur, donc affectent l'ensemble des utilisateurs. Il est ainsi important, en local comme sur un serveur, de fermer les clusters]
 
 
-```{r, eval = FALSE}
+```{r structure foreach, eval = FALSE}
 
 # ETAPE 1: DECOUPE LES DONNEES
 # --------------------------------
@@ -223,13 +223,13 @@ parallel::stopCluster(cl)
 
 Au cours de cet exemple, on va utiliser le *dataframe* ci-dessous, décomposé sous forme de liste:
 
-```{r}
+```{r dataframe split}
 df <- data.frame(
-  x = rnorm(10e7),
-  y = sample(1:50, size = 10e7, replace = TRUE)
+  x = rnorm(10e6),
+  y = sample(1:50, size = 10e6, replace = TRUE)
 )
 
-df_list <- split(df,df$y)
+df_list <- split(df,factor(df$y))
 
 head(df)
 ```
