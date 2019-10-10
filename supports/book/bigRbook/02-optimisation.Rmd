@@ -44,15 +44,15 @@ Pour pouvoir faire le comparatif `R`-`python` que vous pouvez retrouver dans cet
 ```{r check reticulate, echo=TRUE}
 library(reticulate)
 
-if (Sys.getenv("LOCAL")==""){
+#if (Sys.getenv("LOCAL")==""){
   # CHANGE HERE TO YOUR PATH
-  Sys.setenv(RETICULATE_PYTHON = "/opt/conda/envs/Reticulate/bin")
-  
-  # CREATE A CONDA ENVIRONMENT JUST FOR RETICULATE
-  use_condaenv("Reticulate")
+#Sys.setenv(RETICULATE_PYTHON = "/opt/conda/envs/Reticulate/bin")
 
-  reticulate::conda_install("Reticulate", "scipy")
-}
+# CREATE A CONDA ENVIRONMENT JUST FOR RETICULATE
+#reticulate::use_condaenv("Reticulate")
+
+#reticulate::conda_install("Reticulate", "scipy")
+#}
 ```
 </div>
 
