@@ -90,7 +90,7 @@ Le comparatif ci-dessous compare la vitesse des deux approches sur un système `
 **TO DO sur une machine Linux -----> **
 
 <!--- <div class="fold s">   --->
-```{r}
+```{r, eval = FALSE}
 df <- split(iris, iris$Species)
 
 
@@ -109,8 +109,10 @@ parallel_group_by <- function(df,
   return(sp)
 }
 
-microbenchmark::microbenchmark(
-  #parallel_group_by(df, type = "FORK")#,
+system.time(
+  parallel_group_by(df, type = "FORK")
+)
+system.time(
   parallel_group_by(df, type = "PSOCK")
 )
 ```
