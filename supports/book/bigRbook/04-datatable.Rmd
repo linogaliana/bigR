@@ -123,10 +123,10 @@ On utilise le fichier `sirus_abstract.csv` qui est un extrait de sirus sur un mi
 
 ```{r, eval = FALSE}
 # Code ayant généré sirus_abstract.csv
-df <- data.table::fread("./../data/sirus_2017.csv")
+df <- data.table::fread("./.~/data/sirus_2017.csv")
 data.table::fwrite(
   df[sample(.N, size = 1e6, replace = FALSE)],
-  file = "./data/sirus_abstract.csv"
+  file = "~/data/sirus_abstract.csv"
 )
 ```
 
@@ -146,14 +146,14 @@ Je recommande d'appeler la commande `gc()` entre chaque commande pour mesurer de
 
 profvis::profvis({
   
-  df_1 <- read.csv("./data/sirus_abstract.csv",
+  df_1 <- read.csv("~/data/sirus_abstract.csv",
                    sep = ",",
                    stringsAsFactors = FALSE) 
   gc()  # gc pour ne pas biaiser la mesure des besoins mémoires
-  df_2 <- readr::read_csv("./data/sirus_abstract.csv",
+  df_2 <- readr::read_csv("~/data/sirus_abstract.csv",
                           progress = FALSE) 
   gc()  # gc pour ne pas biaiser la mesure des besoins mémoires
-  df_3 <- data.table::fread("./data/sirus_abstract.csv",
+  df_3 <- data.table::fread("~/data/sirus_abstract.csv",
                             showProgress = FALSE)
   
 })
@@ -169,7 +169,7 @@ La fonction de base est très lente. Pourtant, elle est codée en `C` comme la f
 On peut utiliser l'option `verbose = TRUE` pour avoir une meilleure idée de la manière dont `fread` fonctionne
 
 ```{r, eval=FALSE}
-df_3 <- data.table::fread("./data/sirus_abstract.csv",
+df_3 <- data.table::fread("~/data/sirus_abstract.csv",
                             verbose = TRUE)
 ```
 
@@ -188,7 +188,7 @@ L'objectif est d'être moins gourmand en RAM en ne gardant que les observations 
 Par exemple, on peut n'importer qu'une ligne `nrows = 1` pour connaître le nom des colonnes
 ```{r}
 cols <- colnames(
-  data.table::fread("./data/sirus_2017.csv", nrows = 1)
+  data.table::fread("~/data/sirus_2017.csv", nrows = 1)
 )
 ```
 
@@ -203,7 +203,7 @@ On va utiliser ce vecteur `cols` par la suite donc gardez le dans l'environnemen
 # Question 1 ---------------
 
 profvis::profvis({
-  df <- data.table::fread("./data/sirus_2017.csv",
+  df <- data.table::fread("~/data/sirus_2017.csv",
                           select = c("sirus_id", "nic", "ape", "eff_3112_et"))
 })
 
@@ -213,7 +213,7 @@ cols_to_rm <- cols[(startsWith(cols, "adr_") | startsWith(cols, "eff_"))] # Meth
 # cols_to_rm <- cols[!grepl("^(adr_|eff_)", cols)] # Methode base avec regex
 
 profvis::profvis({
-  df <- data.table::fread("./data/sirus_2017.csv",
+  df <- data.table::fread("~/data/sirus_2017.csv",
                           drop = cols_to_rm)
 })
 ```
@@ -233,14 +233,14 @@ Je recommande de tester sur le fichier `sirus_abstract.csv` avant d'essayer sur 
 
 
 ```{r, eval = FALSE}
-git_bash <- "C:\Users\W3CRK9\AppData\Local\Programs\Git\git-bash.exe"
-# df <- data.table::fread(cmd = "findstr TOULOUSE ./data/sirus_abstract.csv * 2>nul")
+# git_bash <- "C:\Users\W3CRK9\AppData\Local\Programs\Git\git-bash.exe"
+# df <- data.table::fread(cmd = "findstr TOULOUSE ~/data/sirus_abstract.csv * 2>nul")
 
 # Question 1
-df <- data.table::fread(cmd = sprintf('"%s" --login grep TOULOUSE ./data/sirus_abstract.csv', git_bash))
+df <- data.table::fread(cmd = sprintf('grep TOULOUSE ~/data/sirus_abstract.csv'))
 
 # Question 2
-df <- data.table::fread(cmd = sprintf('start "%s" -c grep -v TOULOUSE ./data/sirus_abstract.csv', git_bash))
+df <- data.table::fread(cmd = sprintf('start "%s" -c grep -v TOULOUSE ~/data/sirus_abstract.csv', git_bash))
 ```
 
 La commande `cmd` permet d'exécuter beaucoup plus que des commandes `grep`. Toute commande shell peut être utilisée. Le problème sur Windows provient du fait que la commande sous-jacente (`system`) fait appel à l'invite de commande DOS qui est beaucoup moins complète qu'un terminal `unix`^[On peut trouver [ici](https://happygitwithr.com/shell.html) une explication de la manière dont le terminal `git` peut se substituer, dans `Rstudio` au terminal `cmd` Windows. 
@@ -352,7 +352,7 @@ Reprendre les données `sirus` complètes
 1. Créer la colonne `myvar` à partir de la commande `runif` en faisant attention de ne pas se tromper sur la longueur du vecteur aléatoire (utiliser la commande `nrow` ou la commande `data.table` équivalente `.N`)
 
 ```{r}
-df <- data.table::fread("./data/sirus_2017.csv")
+df <- data.table::fread("~/data/sirus_2017.csv")
 df[,'myvar' := runif(.N)]
 df[,`:=` ('myvar1' = myvar,
           'myvar2' = 2*get('myvar'))]
