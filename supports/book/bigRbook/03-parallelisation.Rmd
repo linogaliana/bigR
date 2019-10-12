@@ -226,7 +226,7 @@ Au cours de cet exemple, on va utiliser le *dataframe* ci-dessous, décomposé s
 ```{r dataframe split}
 df <- data.frame(
   x = rnorm(10e6),
-  y = sample(1:50, size = 10e6, replace = TRUE)
+  y = sample(1:100, size = 10e6, replace = TRUE)
 )
 
 df_list <- split(df,factor(df$y))
@@ -254,7 +254,9 @@ Dans le coeur de la boucle `%dopar%`, on va répliquer le comportement `split`-`
 ```{r, eval = FALSE}
 profvis::profvis({
   # CLUSTER INITIALIZATION  
-  cl <- parallel::makeCluster(parallel::detectCores()-1,
+  # cl <- parallel::makeCluster(parallel::detectCores()-1,
+  #                             outfile = "")
+  cl <- parallel::makeCluster(16,
                               outfile = "")
   doSNOW::registerDoSNOW(cl)
   
@@ -281,13 +283,16 @@ profvis::profvis({
 ```{r, show = FALSE}
 profvis::profvis({
   # CLUSTER INITIALIZATION  
-  cl <- parallel::makeCluster(parallel::detectCores()-1,
+  # cl <- parallel::makeCluster(parallel::detectCores()-1,
+  #                             outfile = "")
+  cl <- parallel::makeCluster(16,
                               outfile = "")
-  doSNOW::registerDoSNOW(cl)
+ doSNOW::registerDoSNOW(cl)
   
   output <- foreach::foreach(g = df_list, .combine = "list",
                              .multicombine = TRUE,
-                             .maxcombine = length(df_list)) %dopar% {
+                             .maxcombine = length(df_list),
+                             .export = "df_list") %dopar% {
     data.frame(x = mean(g$x), y = unique(g$y))
   }
   
@@ -359,7 +364,9 @@ Cette fois, dans le coeur du `%dopar%`, vous pouvez écrire `return(c(unique(g$z
 ```{r, eval = FALSE}
 profvis::profvis({
   # CLUSTER INITIALIZATION  
-  cl <- parallel::makeCluster(parallel::detectCores()-1,
+  # cl <- parallel::makeCluster(parallel::detectCores()-1,
+  #                             outfile = "")
+  cl <- parallel::makeCluster(16L,
                               outfile = "")
   doSNOW::registerDoSNOW(cl)
   
@@ -386,7 +393,9 @@ profvis::profvis({
 ```{r}
 profvis::profvis({
   # CLUSTER INITIALIZATION  
-  cl <- parallel::makeCluster(parallel::detectCores()-1,
+  # cl <- parallel::makeCluster(parallel::detectCores()-1,
+  #                             outfile = "")
+  cl <- parallel::makeCluster(16L,
                               outfile = "")
   doSNOW::registerDoSNOW(cl)
   
@@ -458,7 +467,9 @@ La solution pour la version parallélisée:
 ```{r, warning=FALSE}
 profvis::profvis({
   # CLUSTER INITIALIZATION  
-  cl <- parallel::makeCluster(parallel::detectCores()-1,
+  # cl <- parallel::makeCluster(parallel::detectCores()-1,
+  #                             outfile = "")
+  cl <- parallel::makeCluster(16L,
                               outfile = "")
   doSNOW::registerDoSNOW(cl)
   
@@ -562,7 +573,9 @@ bootstrap_sequential <- function(df){
 
 profvis::profvis({
 # CLUSTER INITIALIZATION  
-cl <- parallel::makeCluster(parallel::detectCores()-1,
+# cl <- parallel::makeCluster(parallel::detectCores()-1,
+#                             outfile = "")
+cl <- parallel::makeCluster(16L,
                             outfile = "")
 doSNOW::registerDoSNOW(cl)
 

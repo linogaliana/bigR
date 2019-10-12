@@ -123,7 +123,7 @@ On utilise le fichier `sirus_abstract.csv` qui est un extrait de sirus sur un mi
 
 ```{r, eval = FALSE}
 # Code ayant généré sirus_abstract.csv
-df <- data.table::fread("./data/sirus_2017.csv")
+df <- data.table::fread("./../data/sirus_2017.csv")
 data.table::fwrite(
   df[sample(.N, size = 1e6, replace = FALSE)],
   file = "./data/sirus_abstract.csv"
