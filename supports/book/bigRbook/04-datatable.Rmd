@@ -232,20 +232,35 @@ Je recommande de tester sur le fichier `sirus_abstract.csv` avant d'essayer sur 
 2. On ne va garder que les observations où n'apparaît pas la ville TOULOUSE
 
 
-```{r, eval = FALSE}
+```{r}
 # git_bash <- "C:\Users\W3CRK9\AppData\Local\Programs\Git\git-bash.exe"
 # df <- data.table::fread(cmd = "findstr TOULOUSE ~/data/sirus_abstract.csv * 2>nul")
 
 # Question 1
-df <- data.table::fread(cmd = sprintf('grep TOULOUSE ~/data/sirus_abstract.csv'))
+df <- data.table::fread(cmd = 'grep TOULOUSE ~/data/sirus_abstract.csv')
 
 # Question 2
-df <- data.table::fread(cmd = sprintf('start "%s" -c grep -v TOULOUSE ~/data/sirus_abstract.csv', git_bash))
+df <- data.table::fread('grep -v TOULOUSE ~/data/sirus_abstract.csv')
+
 ```
 
 La commande `cmd` permet d'exécuter beaucoup plus que des commandes `grep`. Toute commande shell peut être utilisée. Le problème sur Windows provient du fait que la commande sous-jacente (`system`) fait appel à l'invite de commande DOS qui est beaucoup moins complète qu'un terminal `unix`^[On peut trouver [ici](https://happygitwithr.com/shell.html) une explication de la manière dont le terminal `git` peut se substituer, dans `Rstudio` au terminal `cmd` Windows. 
 ]
 
+L'avantage de filtrer sur les lignes avec `cmd` est le gain de temps
+
+```{r}
+system.time(
+df <- data.table::fread(cmd = 'grep TOULOUSE ~/data/sirus_abstract.csv')
+)
+
+system.time({
+  df <- data.table::fread(file = "~/data/sirus_abstract.csv",
+                          encoding = "UTF-8")
+  
+  df <- df[grepl(pattern = "TOULOUSE", sir_adr_et_com_lib)]
+})
+```
 
 ### Import d'autres formats de données
 
