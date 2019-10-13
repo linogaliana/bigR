@@ -1,3 +1,5 @@
+# (PART) Approches in-memory {-}
+
 # Fondamentaux de l'optimisation en R
 
 <script src="./hideOutput.js"></script>
