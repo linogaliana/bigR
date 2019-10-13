@@ -651,6 +651,18 @@ df[,lapply(.SD, quantile, probs = c(.1,.25,.5,.75,.9),
 
 ## Agrégations par groupe
 
+On a, jusqu'à présent, ignoré la dimension `by`. Comme en `SQL`, il s'agit néanmoins d'une dimension qui permet d'obtenir des requêtes très complexes de manière relativement simple. Par exemple, si on désire calculer l'effectif (`eff_etp_uniteLegale`) par code postal (`adr_et_post`) d'observations par groupe, on va utiliser la syntaxe suivante:
+
+```{r}
+df[,.('effectif' = sum(eff_etp_uniteLegale, na.rm = TRUE)), by = "adr_et_post"]
+```
+
+On peut bien-sûr utiliser plusieurs variables de groupes ou effectuer les agrégations sur plusieurs colonnes.
+
+**Exercice**
+
+1. Utiliser .N et data.table::uniqueN
+
 
 
 
