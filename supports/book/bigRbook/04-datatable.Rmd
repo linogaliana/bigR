@@ -559,7 +559,7 @@ df[,.(sirus_id)] #.() est un alias pour list() qu'on utilisera pour l'agrégatio
 df2 %>% dplyr::select(sirus_id) #SE
 df2 %>% dplyr::select(!!rlang::sym("sirus_id")) #NSE
 
-# 2/ Renvoyer sous forme de vecteur la colonne
+# 2/ Renvoyer sous forme de vecteur la colonne ------
 head(df[,sirus_id])# SE
 head(df[,get('sirus_id')]) # NSE
 head(df[['sirus_id']]) # NSE (ou on exploite la nature de liste d'un data.table)
@@ -615,16 +615,43 @@ On va régulièrement utiliser cette syntaxe.
 df[,lapply(.SD, round), .SDcols = c("x","y")]
 ```
 
-Un usage fréquent de cette syntaxe `lapply` + `SD` est l'utilisation de fonctions d'agrégations ou de statistiques descriptives^[On peut bien-sûr utiliser des schémas de sélection de colonnes plus complexes, par exemple en fonction de leur nom ou de leur type. Les fonctions de subsetting en fonction d'expressions régulières du package `stringr` sur le vecteur de nom (`colnames(df)`) peuvent ici se montrer précieuses], notamment les fonctions `mean`,`sd`, `quantile`, etc. 
+Un usage fréquent de cette syntaxe `lapply` + `SD` est l'utilisation de fonctions d'agrégations ou de statistiques descriptives^[On peut bien-sûr utiliser des schémas de sélection de colonnes plus complexes, par exemple en fonction de leur nom ou de leur type. Les fonctions de subsetting en fonction d'expressions régulières du package `stringr` sur le vecteur de nom (`colnames(df)`) peuvent ici se montrer précieuses], notamment les fonctions `mean`,`sum`,`sd`, `quantile`, etc. 
 
 
+## Agrégations
+
+### Agrégations sans groupe
+
+Les fonctions d'agrégation peuvent être vues comme des requêtes sur la dimension `j`. 
 
 
-# Aggregations
+**Exercice**
+
+1. Calculer la moyenne des variables eff_3112_uniteLegale et eff_etp_uniteLegale (NB: on a de multiples doubles comptes...)
+2. Calculer la part des lignes pour lesquelles eff_etp_uniteLegale est inférieur à 10
+3. Calculer les quantiles des distributions eff_etp_uniteLegale et eff_3112_uniteLegale: D1, Q1, médiane, Q3, D9
+
+```{r}
+# Question 1
+df[,.('moy1' = mean(eff_3112_uniteLegale, na.rm = TRUE),
+      'moy2' = mean(eff_etp_uniteLegale, na.rm = TRUE))]
+# df[,lapply(.SD,mean,na.rm=TRUE),
+#    .SDcols = c("eff_3112_uniteLegale","eff_etp_uniteLegale")]
+
+# Question 2
+df[,mean(eff_etp_uniteLegale<10L, na.rm=TRUE)]
+
+# Question 3
+df[,lapply(.SD, quantile, probs = c(.1,.25,.5,.75,.9),
+           na.rm = TRUE),
+   .SDcols = c("eff_etp_uniteLegale","eff_etp_uniteLegale")]
+
+```
 
 
-ans <- flights[, sum( (arr_delay + dep_delay) < 0 )]
-ans
+## Agrégations par groupe
+
+
 
 
 ans <- flights[, .(.N), by = .(origin)]
