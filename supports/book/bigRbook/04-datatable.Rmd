@@ -105,6 +105,15 @@ En évaluation non standard, l'objet `x` est compris comme faisant partie de l'e
 
 `data.table` et `dplyr` reposent tous deux sur l'ingration standard (on cite les noms de colonnes sous la forme `dt[,x]` ou `df %>% mutate(x)` ce qui relève de l'intégration standard). L'intégration de l'évaluation standard, qui est à la fois pratique dans une approche de programmation fonctionnelle (on peut passer des noms de variable en argument d'une fonction) et désirable pour la reproductibilité des programmes est ardue à mettre en oeuvre dans `dplyr` alors qu'elle est très simple en `data.table`^[Si vous ne me croyez pas, essayer de comprendre du premier coup la [vignette dplyr](https://dplyr.tidyverse.org/articles/programming.html) sur le sujet]. 
 
+Il est possible d'appliquer de l'évaluation non standard de deux autres manières en `data.table`. Elles sont présentées ici mais ne seront pas approfondies^[Les personnes familières avec la syntaxe `unix` retrouveront une similarité entre les `..` en `data.table` et sur le terminal. C'est le même principe qui s'applique: `..` signifie "un niveau au-dessus": `..` signale à `data.table` de rechercher les variables `select_cols` un niveau au-dessus, i.e. dans l'environnement global dans ce cas.]:
+
+```{r}
+select_cols = c("x", "y")
+flights[ , ..select_cols]
+flights[ , select_cols, with = FALSE]
+```
+
+Le lecteur intéressé pourra se reporter aux vignettes `data.table` sur le sujet. 
 
 ## Lecture et écriture de données
 
@@ -536,32 +545,79 @@ df %>% dplyr::mutate(region = dplyr::case_when(
 
 ### Subsetting des colonnes
 
+Ici, c'est la dimension `j` qui est à requêter, à la manière d'un `SELECT` en `SQL`. En `dplyr`, la fonction à appliquer est `dplyr::select`. En `data.table`, on exploite la deuxième dimension au sein des crochets.
 
-1 seule colonne: flights[, arr_delay] NSE ou flights[, get('arr_delay')] SE  flights[["arr_delay"]]
-Select arr_delay column, but return as a data.table instead. 
-ans <- flights[, list(arr_delay)]
-We wrap the variables (column names) within list(), which ensures that a data.table is returned. In case of a single column name, not wrapping with list() returns a vector instead,
-data.table also allows wrapping columns with .() instead of list(). It is an alias to list(); they both mean the same. 
+Pour selectionner une seule colonne, on choisit selon 
 
-Select both arr_delay and dep_delay columns.
-ans <- flights[, .(arr_delay, dep_delay)]
-head(ans)
-elect both arr_delay and dep_delay columns and rename them to delay_arr and delay_dep.
+```{r}
+# 1 / Renvoyer un data.table ----
+df[,list('sirus_id' = sirus_id)] 
+df[,list('sirus_id' = get("sirus_id"))] 
+df[,.(sirus_id)] #.() est un alias pour list() qu'on utilisera pour l'agrégation
 
-Since .() is just an alias for list(), we can name columns as we would while creating a list.
+# Equivalent data.table de:
+df2 %>% dplyr::select(sirus_id) #SE
+df2 %>% dplyr::select(!!rlang::sym("sirus_id")) #NSE
 
-ans <- flights[, .(delay_arr = arr_delay, delay_dep = dep_delay)]
-head(ans)
+# 2/ Renvoyer sous forme de vecteur la colonne
+head(df[,sirus_id])# SE
+head(df[,get('sirus_id')]) # NSE
+head(df[['sirus_id']]) # NSE (ou on exploite la nature de liste d'un data.table)
 
-Equivalent du select avec .SDcols
+# Equivalent data.table de:
+df2 %>% dplyr::select(sirus_id) %>% dplyr::pull() %>%
+  head()
+```
 
-select_cols = c("arr_delay", "dep_delay")
-flights[ , ..select_cols]
-flights[ , select_cols, with = FALSE]
-For those familiar with the Unix terminal, the .. prefix should be reminiscent of the “up-one-level” command, which is analogous to what’s happening here – the .. signals to data.table to look for the select_cols variable “up-one-level”, i.e., in the global environment in this case.
-with = TRUE is the default in data.table because we can do much more by allowing j to handle expressions
+La structure `df[,list("sirus_id" = sirus_id)]` permet de conserver le nom de colonne originel. Autrement, `data.table` va la renommer. La syntaxe `.()` est là pour alléger les notations: il s'agit d'un alias équivalent à `list()` qu'on utilisera fréquemment lors des agrégations. On peut généraliser cette syntaxe pour sélectionner plusieurs colonnes
 
-Update some rows of columns by reference - sub-assign by reference flights[hour == 24L, hour := 0L]
+**Exercice**
+
+1. Sélectionnez les colonnes `sirus_id` et `adr_et_voie_lib` en les renommant (dans la même étape), `sirus` et `adresse`. Ceci correspond à un `SELECT sirus_id AS sirus` en `SQL`
+2. Faire la même chose en `dplyr` 
+
+```{r}
+# Question 1
+df[,list('sirus' = sirus_id, 'adresse' = adr_et_voie_lib)]
+
+# Question 2
+df2 %>% dplyr::select('sirus' = sirus_id, 'adresse' = adr_et_voie_lib)
+```
+
+Cette syntaxe n'est pas très pratique car elle nécessite de faire attention à bien renommer les éléments pour ne pas écraser les noms des colonnes. Il y a une syntaxe adaptée en `data.table` pour sélectionner un ensemble de colonne: il s'agit du mot clé `.SD` pour *Subset of Data*. Il s'agit d'une des fonctionnalités les plus puissantes de `data.table` dont nous allons découvrir une première application ici. `.SD` permet de faire référence à un ensemble de colonnes sous forme de liste^[En fait, l'ensemble des colonnes sélectionné par `.SD` est, en lui-même, un `data.table` stockant les données du groupe actuel défini par la condition `by` (l'ensemble des groupes si `by` n'est pas appelé)], par défaut toutes les colonnes à l'exclusion des colonnes de groupe (dimension `by` que nous explorons dans la prochaine partie). Pour spécifier les colonnes faisant référence à `.SD`, on utilise l'option `SDcols` au sein des crochets
+
+```{r}
+df[,.SD,.SDcols = c("sirus_id","adr_et_voie_lib")]
+```
+
+`.SD` peut être utilisé en conjonction avec `:=` pour créer de nouvelles colonnes par référence. Par exemple, imaginons que nous désirions retirer la valeur 1 aux colonnes `eff_3112_uniteLegale` `eff_etp_uniteLegale` (imaginons qu'on a une erreur de définition de la variable). On peut utiliser `.SD`:
+
+```{r}
+df[, c("temp_eff_3112_uniteLegale", "temp_eff_etp_uniteLegale") := .SD - 1,
+   .SDcols = c("eff_3112_uniteLegale","eff_etp_uniteLegale")]
+head(df)
+# On supprime pour ne pas avoir trop de colonnes inutiles
+df[, c("temp_eff_3112_uniteLegale", "temp_eff_etp_uniteLegale") := NULL]
+```
+
+
+On peut imaginer des opérations de mise à jour beaucoup plus complexes pour le `data.table`. En particulier, on peut désirer appliquer une même fonction à plusieurs colonnes: par exemple on désire arrondir plusieurs colonnes. `.SD` s'intègre très bien avec un appel à `lapply`: c'est même l'usage principal de ce mot clé. La syntaxe prend, dans ce cas, la forme suivante
+
+```{r, eval = FALSE}
+df[,lapply(.SD, myfunc, ...), .SDcols = c("var1","var2")]
+```
+
+On va régulièrement utiliser cette syntaxe.
+
+**Exercice** Appliquez cette approche pour arrondir les colonnes `x` et `y`. Vous n'avez pas besoin d'ajouter d'arguments à la fonction `round`
+
+```{r}
+df[,lapply(.SD, round), .SDcols = c("x","y")]
+```
+
+Un usage fréquent de cette syntaxe `lapply` + `SD` est l'utilisation de fonctions d'agrégations ou de statistiques descriptives^[On peut bien-sûr utiliser des schémas de sélection de colonnes plus complexes, par exemple en fonction de leur nom ou de leur type. Les fonctions de subsetting en fonction d'expressions régulières du package `stringr` sur le vecteur de nom (`colnames(df)`) peuvent ici se montrer précieuses], notamment les fonctions `mean`,`sd`, `quantile`, etc. 
+
+
 
 
 # Aggregations
