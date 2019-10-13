@@ -107,7 +107,7 @@ En évaluation non standard, l'objet `x` est compris comme faisant partie de l'e
 
 Il est possible d'appliquer de l'évaluation non standard de deux autres manières en `data.table`. Elles sont présentées ici mais ne seront pas approfondies^[Les personnes familières avec la syntaxe `unix` retrouveront une similarité entre les `..` en `data.table` et sur le terminal. C'est le même principe qui s'applique: `..` signifie "un niveau au-dessus": `..` signale à `data.table` de rechercher les variables `select_cols` un niveau au-dessus, i.e. dans l'environnement global dans ce cas.]:
 
-```{r}
+```{r, eval = FALSE}
 select_cols = c("x", "y")
 flights[ , ..select_cols]
 flights[ , select_cols, with = FALSE]
