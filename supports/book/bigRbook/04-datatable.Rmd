@@ -8,7 +8,6 @@ knitr::opts_knit$set(root.dir = "~")
 ```
 
 
-
 `R` est réputé être un langage lent et de nombreux exemples sur internet proposent des comparatifs de vitesse qui suggèrent que `python` est plus rapide (nous avons déjà proposé un petit comparatif dans l'introduction de ce cours). Il est vrai que le langage de base `R` est lent mais, pour être honnête, avec le développement de `data.table` et `tidyverse`, la grammaire de base est de moins en moins utilisée de manière exclusive. Pour rendre réellement compte des performances du langage `R`, il convient donc de mesurer les vitesses d'exécution de ces deux approches. A ce jeu, `data.table` est très performant:
 
 
@@ -250,7 +249,6 @@ df <- data.table::fread(cmd = 'grep TOULOUSE ~/data/sirus_abstract.csv')
 
 # Question 2
 df <- data.table::fread('grep -v TOULOUSE ~/data/sirus_abstract.csv')
-
 ```
 
 La commande `cmd` permet d'exécuter beaucoup plus que des commandes `grep`. Toute commande shell peut être utilisée. Le problème sur Windows provient du fait que la commande sous-jacente (`system`) fait appel à l'invite de commande DOS qui est beaucoup moins complète qu'un terminal `unix`^[On peut trouver [ici](https://happygitwithr.com/shell.html) une explication de la manière dont le terminal `git` peut se substituer, dans `Rstudio` au terminal `cmd` Windows. 
@@ -660,66 +658,98 @@ df[,.('effectif' = sum(eff_etp_uniteLegale, na.rm = TRUE)), by = "adr_et_post"]
 On peut bien-sûr utiliser plusieurs variables de groupes ou effectuer les agrégations sur plusieurs colonnes.
 
 **Exercice**
+Effectuer les étapes 1 et 2 dans un profvis::profvis séparé
+1. Comptez le nombre d'observations (`.N`), que vous stockerez dans une variable `n` et le nombre de valeurs uniques de la variable `apet` (avec la fonction `data.table::uniqueN`), que vous stockerez dans la variable `ndist` par département (variable `region`). Stocker le résultat dans un objet `df_agg`.
+2. Quelle vitesse et besoin mémoire ? Comparer avec l'approche équivalente en tidyverse
 
-1. Utiliser .N et data.table::uniqueN
+```{r}
+profvis::profvis({
+# Question 1
+df_agg <- df[,.('n' = .N,
+                'ndist' = data.table::uniqueN(apet)), by = "region"]
+})
+df_agg
+
+df_tbl <- dplyr::as_tibble(df)
+profvis::profvis({
+  
+df_agg_tbl <- df_tbl %>%
+  dplyr::group_by(region) %>%
+  dplyr::summarise(
+    n = n(), ndist = dplyr::n_distinct(apet)
+  )
+})
+
+profvis::profvis({
+# Question 1
+df_agg <- df[,.('q1' = Hmisc::wtd.mean()), by = "region"]
+})
+df_agg
+
+df_tbl <- dplyr::as_tibble(df)
+profvis::profvis({
+  
+df_agg_tbl <- df_tbl %>%
+  dplyr::group_by(region) %>%
+  dplyr::summarise(
+    n = n(), ndist = dplyr::n_distinct(apet)
+  )
+})
+
+```
+
+**L'approche `tidyverse` est ici plus rapide et moins gourmande en mémoire**. Ici, on ne tire pas pleinement profit de la vitesse du package `data.table`. On voit grâce au *profiling* qu'on perd du temps à répéter des opérations de tri. 
+Plus les opérations de groupe sont complexes, plus on perd du temps dans le tri. Les données ne sont pas indexées, nous allons bientôt voir que ça va grandement accélérer la vitesse des agrégations. 
+
+On peut, plutôt qu'utiliser le mot clé `by`, utiliser `keyby` dans certains cas. `keyby` automatiquement ordonne les résultats en fonction de la variable de groupe (`region` ici), par ordre croissant.
+
+```{r}
+df_agg <- df[,.('n' = .N,
+                'ndist' = data.table::uniqueN(apet)),
+             keyby = "region"]
+df_agg
+```
+
+En fait, `keyby` permet, dans le même temps, d'initialiser une indexation de la table en même temps. Mais nous verrons comment effectuer celle-ci avant une opération d'agrégation: là on tirera parti des points forts de `data.table`
+
+On peut utiliser `by` pour créer une colonne par référence. Dans ce cas, `dt[, a := b, by = c]` est la traduction `data.table` de l'opétation `df %>% dplyr::group_by(c) %>% dplyr::mutate(a = b)`. 
+
+** Exercice **
+Comparez l'approche `data.table` et `dplyr` en créant une variable `effect_moyen` qui enregistre l'effectif moyen (variable `eff_etp_uniteLegale`) par `region`. 
+
+```{r}
+profvis::profvis({
+df[,effect_moyen := mean(eff_etp_uniteLegale,
+                         na.rm = TRUE), by = region]
+df_tbl <- df_tbl %>% dplyr::group_by(region) %>%
+  dplyr::mutate(effect_moyen = mean(eff_etp_uniteLegale,
+                                    na.rm = TRUE))
+})
+```
+
+Sur le temps d'exécution, là encore on voit que `data.table` sans indexation est moins rapide que `dplyr`. En revanche, on retrouve l'intérêt du passage par référence pour réduire les besoins mémoires
+
+### Agrégations sur plusieurs colonnes
+
+On retrouve `.SD`. On va créer des variables `a`, `b` et `c` aléatoires pour avoir plus de variables sur lesquelles faire des agrégations
+
+```{r}
+df[, c('a','b','c') := lapply(1:3, function(i) runif(nrow(df)))]
+df_tbl <- dplyr::as_tibble(df)
+```
+
+Pour faire des statistiques sur plusieurs colonnes par groupe, il suffit d'utiliser la fonction voulue avec `lapply` (comme on l'a vu précédemment lors de l'application de la fonction `round`)
+
+**Exercice** 
+1. Faire les moyennes des variables `a`, `b`, `c`, `eff_3112_uniteLegale`, `eff_etp_uniteLegale` en utilisant la variable `region` comme groupoe
+
+```{r}
+df[, lapply(.SD, mean, na.rm = TRUE), by = "region",
+   .SDcols = c("a","b","c","eff_3112_uniteLegale","eff_etp_uniteLegale")]
+```
 
 
-
-
-ans <- flights[, .(.N), by = .(origin)]
-
-
-ans <- flights[carrier == "AA",
-        .(mean(arr_delay), mean(dep_delay)),
-        keyby = .(origin, dest, month)]
-ans
-All we did was to change by to keyby. This automatically orders the result by the grouping variables in increasing order. In fact, due to the internal implementation of by first requiring a sort before recovering the original table’s order, keyby is typically faster than by because it doesn’t require this second step.
-Keys: Actually keyby does a little more than just ordering. It also sets a key after ordering by setting an attribute called sorted.
-
-
- Can by accept expressions as well or does it just take columns?
-
-Yes it does. As an example, if we would like to find out how many flights started late but arrived early (or on time), started and arrived late etc…
-
-ans <- flights[, .N, .(dep_delay>0, arr_delay>0)]
-ans
-
-
-Special symbol .SD:
-
-data.table provides a special symbol, called .SD. It stands for Subset of Data. It by itself is a data.table that holds the data for the current group defined using by.
-
-Recall that a data.table is internally a list as well with all its columns of equal length.
-
-Let’s use the data.table DT from before to get a glimpse of what .SD looks like.
-
-.SD contains all the columns except the grouping columns by default.
-
-To compute on (multiple) columns, we can then simply use the base R function lapply().
-
-DT[, lapply(.SD, mean), by = ID]
-
-.SD holds the rows corresponding to columns a, b and c for that group. We compute the mean() on each of these columns using the already-familiar base function lapply().
-
-Each group returns a list of three elements containing the mean value which will become the columns of the resulting data.table.
-
-Since lapply() returns a list, so there is no need to wrap it with an additional .() 
-
-.SDcols
-
-Using the argument .SDcols. It accepts either column names or column indices. 
-
-How can we return the first two rows for each month?
-
-ans <- flights[, head(.SD, 2), by = month]
-head(ans)
-
-
-
-Parler de l'indexation
-
-
-# Utilisation avancée
+# Indexation: accélérer les opérations par groupe et les filtres
 
 
 # Fast subsetting
