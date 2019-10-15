@@ -749,7 +749,9 @@ df[, lapply(.SD, mean, na.rm = TRUE), by = "region",
 ```
 
 
-# Indexation: accélérer les opérations par groupe et les filtres
+## Indexation: accélérer les opérations par groupe et les filtres
+
+Les dataframes de base ont un attribut qui est le `rowname` et permet de manière unique d'identifier des lignes. Cette fonctionalité n'est pas proposée par `data.table` car il existe un principe beaucoup plus puissant: les index.  
 
 
 # Fast subsetting
