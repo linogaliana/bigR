@@ -754,6 +754,8 @@ df[, lapply(.SD, mean, na.rm = TRUE), by = "region",
 
 ## Indexation: accélérer les opérations par groupe, les filtres et les appariemments
 
+**NB: revoir avec la différence entre index et key en data.table**
+
 Les dataframes de base ont un attribut qui est le `rowname` et permet de manière unique d'identifier des lignes. Cette fonctionalité n'est pas proposée par `data.table` (ni par `dplyr`) car il existe un principe beaucoup plus puissant: les index^[Dans ce cours, nous n'évoquerons que les index primaires. Il y a en fait, comme en SQL, la possibilité d'avoir des index secondaires avec un `data.table`. La différence est qu'il ne s'agit pas de réordonner les données dans des espaces contigües comme avec des index mais plutôt de stocker quelque part un vecteur d'ordre. L'avantage est qu'on peut, dès lors, utiliser plusieurs index secondaires alors qu'on ne peut avoir qu'un index primaire]. Un index en `data.table`, contrairement à un rowname de dataframe:
 
 * Un index peut être construit à partir de plusieurs colonnes, dont le type peut différer
