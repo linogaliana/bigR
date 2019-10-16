@@ -748,36 +748,49 @@ df[, lapply(.SD, mean, na.rm = TRUE), by = "region",
    .SDcols = c("a","b","c","eff_3112_uniteLegale","eff_etp_uniteLegale")]
 ```
 
-
-## Indexation: accélérer les opérations par groupe et les filtres
-
-Les dataframes de base ont un attribut qui est le `rowname` et permet de manière unique d'identifier des lignes. Cette fonctionalité n'est pas proposée par `data.table` car il existe un principe beaucoup plus puissant: les index.  
+## Appariemment: la syntaxe *merge*
 
 
-# Fast subsetting
-All data.frames have a row names attribute. We can subset a particular row using its row name. 
 
-row names are more or less an index to rows of a data.frame. However,
+## Indexation: accélérer les opérations par groupe, les filtres et les appariemments
 
-Each row is limited to exactly one row name.
-row names should be unique.
-data.tables never uses row names. Since data.tables inherit from data.frames, it still has the row names attribute. But it never uses them.
-Instead, in data.tables we set and use keys
+Les dataframes de base ont un attribut qui est le `rowname` et permet de manière unique d'identifier des lignes. Cette fonctionalité n'est pas proposée par `data.table` (ni par `dplyr`) car il existe un principe beaucoup plus puissant: les index^[Dans ce cours, nous n'évoquerons que les index primaires. Il y a en fait, comme en SQL, la possibilité d'avoir des index secondaires avec un `data.table`. La différence est qu'il ne s'agit pas de réordonner les données dans des espaces contigües comme avec des index mais plutôt de stocker quelque part un vecteur d'ordre. L'avantage est qu'on peut, dès lors, utiliser plusieurs index secondaires alors qu'on ne peut avoir qu'un index primaire]. Un index en `data.table`, contrairement à un rowname de dataframe:
 
-We can set keys on multiple columns and the column can be of different types 
-Uniqueness is not enforced, i.e., duplicate key values are allowed. Since rows are sorted by key, any duplicates in the key columns will appear consecutively.
+* Un index peut être construit à partir de plusieurs colonnes, dont le type peut différer
+* L'unicité de l'indice n'est pas nécessaire. Ce sera pratique lors des opérations `by`. Les observations dont la clé est identique apparaîtront dans des observations consécutives. 
 
-Setting a key does two things:
+Fixer une clé a deux conséquences:
+* Reordonne (ordre croissant) en mémoire le `data.table` en fonction des colonnes passées par référence. Cela permettra d'accélérer grandement les opérations sur des lignes
+* ajoute un attribut `sorted` au `data.table`
 
-    physically reorders the rows of the data.table by the column(s) provided by reference, always in increasing order.
+Comme la table est modifiée par référence, l'action de fixer une clé est très efficient en mémoire. Elle permet de gros gains de temps lors des opérations sur les lignes mais a un coût fixe qui est le temps d'initialisation de l'index lors de l'appel de la commande. 
 
-    marks those columns as key columns by setting an attribute called sorted to the data.table.
+Comme le mentionne l'aide de `setkey` (`?setkey`), il y a trois raisons pour lesquelles il est utile d'utiliser des indices:
+
+* On peut utiliser un algorithme de recherche binaire (*binary search*) plutôt qu'un algorithme de parcours de vecteur (*vector scan*) pour les recherches sur les lignes et les joins. L'algorithme de recherche binaire est beaucoup plus efficace que l'algorithme de parcours de vecteur^[La recherche binaire consiste à comparer la valeur recherchée au milieu du vecteur de recherche (ordonné). Dans le cas où il n'y a pas égalité, la moitié à laquelle l'élément ne peut appartenir est éliminée et on prend à nouveau l'élément au milieu et ainsi de suite jusqu'à trouver (ou non) l'élément recherché. Dans le pire des cas, la complexité de l'algorithme est `O(log(n))` ce qui en fait un bon algorithme de recherche pour des vecteurs de taille conséquente. L'opération d'ordonnancement du vecteur de recherche est de complexité `O(n)` ], en particulier pour des données où la dimension $n$ est conséquente.
+* Les opérations de groupe sont accélérées parce que les groupes sont déjà présents dans des espaces de RAM contigüs
+* On peut faire des requêtes plus courtes pour faire du subsetting sur des dimensions. Par exemple `DT["id",]` trouve, par recherche binaire, le groupe `id` dans la première colonne qui sert de clé à `DT`
+
+
+## Créer un index
+
+On peut déjà vérifier qu'un `data.table` possède une clé avec les fonctions `key` et `haskey`:
+
+```{r}
+data.table::key(df)
+data.table::haskey(df)
+```
+
+Ici, `df` ne possède pas de clé. 
+
+    
     
     Note that we did not have to assign the result back to a variable. This is because like the := function we saw in the “Introduction to data.table” vignette, setkey() and setkeyv() modify the input data.table by reference. They return the result invisibly.
     
     
 set* and :=
 
+# Accélérer le subsetting sur les lignes
 
 Once you key a data.table by certain columns, you can subset by querying those key columns using the .() notation in i.
 
