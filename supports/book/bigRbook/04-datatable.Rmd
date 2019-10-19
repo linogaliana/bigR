@@ -131,7 +131,7 @@ On utilise le fichier `sirus_abstract.csv` qui est un extrait de sirus sur un mi
 
 ```{r, eval = FALSE}
 # Code ayant généré sirus_abstract.csv
-df <- data.table::fread("./.~/data/sirus_2017.csv")
+df <- data.table::fread("~/data/sirus_2017.csv")
 data.table::fwrite(
   df[sample(.N, size = 1e6, replace = FALSE)],
   file = "~/data/sirus_abstract.csv"
@@ -774,16 +774,36 @@ Comme le mentionne l'aide de `setkey` (`?setkey`), il y a trois raisons pour les
 * On peut faire des requêtes plus courtes pour faire du subsetting sur des dimensions. Par exemple `DT["id",]` trouve, par recherche binaire, le groupe `id` dans la première colonne qui sert de clé à `DT`
 
 
-## Créer un index
+## Créer un index ou une clé
 
-On peut déjà vérifier qu'un `data.table` possède une clé avec les fonctions `key` et `haskey`:
+On dispose des fonctions suivantes:
+
+* `setkey` ou `setkeyv` permettent de définir une clé. Les deux fonctions différent dans le format accepté pour le nom de colonnes 
+* `setindex` ou `setindexv` permettent de définir un indice. Les deux fonctions différent dans le format accepté pour le nom de colonnes
+
+Les fonctions terminant par `*v` s'appuient sur l'évaluation standard, i.e. des noms de colonnes sous la forme `c("col1","col2")` alors que les fonctions ne terminant pas par `v` reposent sur le principe de l'évaluation non standard, donc des noms de colonnes sous la forme  `c(col1,col2)`
+
+Par exemple, si on désire fixer les colonnes `region` et `apet`, on utilisera le code suivant:
 
 ```{r}
+# METHODE 1: SE
+data.table::setkeyv(df, cols = c("region", "apet"))
 data.table::key(df)
 data.table::haskey(df)
+
+# METHODE 2: NSE
+data.table::setkey(df, region, apet)
+data.table::key(df)
+data.table::haskey(df)
+
+# NB: POUR SUPPRIMER UNE CLE SANS LA REMPLACER
+data.table::setkeyv(df, cols = NULL)
+data.table::key(df)
+data.table::haskey(df)
+
 ```
 
-Ici, `df` ne possède pas de clé. 
+Et de même pour les index avec les fonctions appropriées. 
 
     
     
