@@ -757,7 +757,8 @@ df[, lapply(.SD, mean, na.rm = TRUE), by = "region",
 On part d'un `data.frame` de taille conséquente en prenant `sirus` dans son ensemble.
 
 ```{r}
-df <- data.table::fread("~/sirus_2017.csv")
+df <- data.table::fread("~/data/sirus_abstract.csv",
+                        showProgress = FALSE)
 ```
 
 **NB: revoir avec la différence entre index et key en data.table**
@@ -866,43 +867,11 @@ m2
 ggplot2::autoplot(m2)
 ```
 
-Conclusion: indexation rend beaucoup plus rapide `data.table`. D'autant plus précieux qu'on a plus de colonne (ce qu'on a testé) ou qu'on a plus de lignes ($O(log(n))$ vs $O(n)$)
-Once you key a data.table by certain columns, you can subset by querying those key columns using the .() notation in i.
+Conclusion: indexation rend beaucoup plus rapide `data.table`. D'autant plus précieux qu'on a plus de colonne (ce qu'on a testé) ou qu'on a plus de lignes ($O(log(n))$ vs $O(n)$).
 
-flights[.("JFK")]
-The key column has already been set to origin. So it is sufficient to provide the value, here “JFK”, directly. The .() syntax helps identify that the task requires looking up the value “JFK” in the key column of data.table (here column origin of flights data.table).
+La [vignette](https://cran.r-project.org/web/packages/data.table/vignettes/datatable-secondary-indices-and-auto-indexing.html) sur le sujet des indices offre plus de détails sur les possibilités de simplifier les syntaxes de subsetting lorsqu'on a des indices. Le lecteur intéressé pourra s'y référer. 
 
-
-Subset all rows using key columns where first key column origin matches “JFK” and second key column dest matches “MIA”
-
-setkey(flights, origin, dest)
-flights[.("JFK", "MIA")]
-
-
-flights[.("LGA", "TPA"), .(arr_delay)]
-
-
-We have seen so far how we can set and use keys to subset. But what’s the advantage? For example, instead of doing:
-
-# key by origin,dest columns
-flights[.("JFK", "MIA")]
-
-we could have done:
-
-flights[origin == "JFK" & dest == "MIA"]
-
-One advantage very likely is shorter syntax. But even more than that, binary search based subsets are incredibly fast.
-
-To use slow vector scan key needs to be removed.
-
-setkey(flights, NULL)
-flights[origin == "JFK" & dest == "MIA"]
-
-
-The speed-up of indexes data.table is ~327x!
-
-
-
+<!--------
 Vector scan approach:
 
     The column x is searched for the value “g” row by row, on all 20 million of them. This results in a logical vector of size 20 million, with values TRUE, FALSE or NA corresponding to x’s value.
@@ -916,7 +885,69 @@ This is what we call a vector scan approach. And this is quite inefficient, espe
 Now let us look at binary search approach (method 2). Recall from Properties of key - setting keys reorders the data.table by key columns. Since the data is sorted, we don’t have to scan through the entire length of the column! We can instead use binary search to search a value in O(log n) as opposed to O(n) in case of vector scan approach, where n is the number of rows in the data.table.
 
 Since rows of each column of data.tables have contiguous locations in memory, the operations are performed in a very cache efficient manner (also contributes to speed).
+--------->
 
+En termes de mémoire:
+
+```{r}
+prof <- profvis::profvis({
+  df[region %in% c(75,77,78,91,92,93,94,95) & apet == "0111Z"]
+  df_key[region %in% c(75,77,78,91,92,93,94,95) & apet == "0111Z"]
+  df_index[region %in% c(75,77,78,91,92,93,94,95) & apet == "0111Z"]
+  df_tbl %>% dplyr::filter(region %in% c(75,77,78,91,92,93,94,95) & apet == "0111Z")
+})
+```
+
+Faire des opérations sur un `data.table` dont les clés ont été fixées est beaucoup moins gourmand en mémoire. 
+
+
+### Agrégations efficaces
+
+Les opérartions de groupement sont facilitées par l'indexation. C'est particulièrement utile pour des données multiniveaux
+
+**Exercice**
+
+1. Reprendre les 4 bases précédentes `df`, `df_key`, `df_index` et `df_tbl`
+2. Faire un microbenchmark (20 itérations)
+
+* Du nombre d'observations par groupe (region et apet)
+* Du nombre d'observations par groupe (region et apet), de la somme de la variable `eff_etp_uniteLegale` et de la moyenne de la variable `eff_3112_uniteLegale`
+
+```{r}
+m1 <- microbenchmark::microbenchmark(
+  df[,.N, by = c("region", "apet")],
+  df_key[,.N, by = c("region", "apet")],
+  df_index[,.N, by = c("region", "apet")],
+  df_tbl %>% dplyr::group_by(region, apet) %>%
+    dplyr::summarise(dplyr::n()),
+  times = 20L
+)
+m1
+ggplot2::autoplot(m1)
+m2 <- microbenchmark::microbenchmark(
+  df[,.(.N,
+        sum(eff_etp_uniteLegale, na.rm=TRUE),
+        mean(eff_3112_uniteLegale, na.rm = TRUE)),
+     by = c("region", "apet")],
+  df_key[,.(.N,
+        sum(eff_etp_uniteLegale, na.rm=TRUE),
+        mean(eff_3112_uniteLegale, na.rm = TRUE)),
+        by = c("region", "apet")],
+  df_index[,.(.N,
+        sum(eff_etp_uniteLegale, na.rm=TRUE),
+        mean(eff_3112_uniteLegale, na.rm = TRUE)),
+        by = c("region", "apet")],
+  df_tbl %>% dplyr::group_by(region, apet) %>%
+    dplyr::summarise(dplyr::n()),
+  times = 20L
+)
+m2
+ggplot2::autoplot(m2)
+```
+
+
+
+### Jointures de données efficaces
 
 ### Remplacement conditionnel très efficace
 
