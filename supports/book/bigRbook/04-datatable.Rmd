@@ -754,6 +754,12 @@ df[, lapply(.SD, mean, na.rm = TRUE), by = "region",
 
 ## Indexation: accélérer les opérations par groupe, les filtres et les appariemments
 
+On part d'un `data.frame` de taille conséquente en prenant `sirus` dans son ensemble.
+
+```{r}
+df <- data.table::fread("~/sirus_2017.csv")
+```
+
 **NB: revoir avec la différence entre index et key en data.table**
 
 Les dataframes de base ont un attribut qui est le `rowname` et permet de manière unique d'identifier des lignes. Cette fonctionalité n'est pas proposée par `data.table` (ni par `dplyr`) car il existe un principe beaucoup plus puissant: les index^[Dans ce cours, nous n'évoquerons que les index primaires. Il y a en fait, comme en SQL, la possibilité d'avoir des index secondaires avec un `data.table`. La différence est qu'il ne s'agit pas de réordonner les données dans des espaces contigües comme avec des index mais plutôt de stocker quelque part un vecteur d'ordre. L'avantage est qu'on peut, dès lors, utiliser plusieurs index secondaires alors qu'on ne peut avoir qu'un index primaire]. Un index en `data.table`, contrairement à un rowname de dataframe:
@@ -774,7 +780,7 @@ Comme le mentionne l'aide de `setkey` (`?setkey`), il y a trois raisons pour les
 * On peut faire des requêtes plus courtes pour faire du subsetting sur des dimensions. Par exemple `DT["id",]` trouve, par recherche binaire, le groupe `id` dans la première colonne qui sert de clé à `DT`
 
 
-## Créer un index ou une clé
+### Créer un index ou une clé
 
 On dispose des fonctions suivantes:
 
@@ -786,34 +792,81 @@ Les fonctions terminant par `*v` s'appuient sur l'évaluation standard, i.e. des
 Par exemple, si on désire fixer les colonnes `region` et `apet`, on utilisera le code suivant:
 
 ```{r}
+df_key <- data.table::copy(df)
+
 # METHODE 1: SE
-data.table::setkeyv(df, cols = c("region", "apet"))
-data.table::key(df)
-data.table::haskey(df)
+data.table::setkeyv(df_key, cols = c("region", "apet"))
+data.table::key(df_key)
+data.table::haskey(df_key)
 
 # METHODE 2: NSE
-data.table::setkey(df, region, apet)
-data.table::key(df)
-data.table::haskey(df)
+data.table::setkey(df_key, region, apet)
+data.table::key(df_key)
+data.table::haskey(df_key)
 
 # NB: POUR SUPPRIMER UNE CLE SANS LA REMPLACER
-data.table::setkeyv(df, cols = NULL)
-data.table::key(df)
-data.table::haskey(df)
+data.table::setkeyv(df_key, cols = NULL)
+data.table::key(df_key)
+data.table::haskey(df_key)
 
+# ON SUPPRIME LE DATA.TABLE TEMPORAIRE
+rm(df_key)
 ```
 
-Et de même pour les index avec les fonctions appropriées. 
+Et de même pour les index avec les fonctions appropriées. Comme toutes les fonctions de la famille `set*`, on n'a pas besoin de faire d'assignation: la modification a lieu par référence. 
 
-    
-    
-    Note that we did not have to assign the result back to a variable. This is because like the := function we saw in the “Introduction to data.table” vignette, setkey() and setkeyv() modify the input data.table by reference. They return the result invisibly.
-    
-    
-set* and :=
 
-# Accélérer le subsetting sur les lignes
 
+### Accélérer le subsetting sur les lignes
+
+Le fait d'avoir ordonné le `data.table` (explicitement avec les clés ou implicitement avec les index) permettra d'accélérer grandement les opérations de filtre grâce à la recherche binaire.
+
+** Exercice**
+
+1. Repartir de `df` et vérifiez qu'il n'a pas de clé ou d'index. S'il en a, utiliser le code précédent pour la retirer. Créez plusieurs copies de `df`: `df_key`, `df_index`. Créez aussi `df_tbl` avec la fonction `dplyr::as_tibble`
+2. Fixer les colonnes `region` et `apet` comme clé pour `df_key` et comme indice pour `df_index`
+3. Faire un microbenchmark différent des deux propositions ci-dessous sur la solution data.table non indexé, indexé, avec clé et sur un tibble:
+
+* Garder uniquement les observations où `region %in% c(75,77,78,91,92,93,94,95)`
+* Garder uniquement les observations telles que `region %in% c(75,77,78,91,92,93,94,95)` et `apet == "0111Z"`  
+
+```{r}
+# Question 1
+if (data.table::haskey(df)) data.table::setkey(df, NULL)
+df_key <- data.table::copy(df)
+df_index <- data.table::copy(df)
+df_tbl <- dplyr::as_tibble(df)
+
+  
+# Question 2
+data.table::setkeyv(df_key, c("region","apet"))
+data.table::setindexv(df_index, c("region","apet"))
+
+import::from("magrittr","%>%")
+
+# Question 3
+m1 <- microbenchmark::microbenchmark(
+  df[region %in% c(75,77,78,91,92,93,94,95)],
+  df_key[region %in% c(75,77,78,91,92,93,94,95)],
+  df_index[region %in% c(75,77,78,91,92,93,94,95)],
+  df_tbl %>% dplyr::filter(region %in% c(75,77,78,91,92,93,94,95)),
+  times = 20L
+)
+m1
+ggplot2::autoplot(m1)
+
+m2 <- microbenchmark::microbenchmark(
+  df[region %in% c(75,77,78,91,92,93,94,95) & apet == "0111Z"],
+  df_key[region %in% c(75,77,78,91,92,93,94,95) & apet == "0111Z"],
+  df_index[region %in% c(75,77,78,91,92,93,94,95) & apet == "0111Z"],
+  df_tbl %>% dplyr::filter(region %in% c(75,77,78,91,92,93,94,95) & apet == "0111Z"),
+  times = 20L
+)
+m2
+ggplot2::autoplot(m2)
+```
+
+Conclusion: indexation rend beaucoup plus rapide `data.table`. D'autant plus précieux qu'on a plus de colonne (ce qu'on a testé) ou qu'on a plus de lignes ($O(log(n))$ vs $O(n)$)
 Once you key a data.table by certain columns, you can subset by querying those key columns using the .() notation in i.
 
 flights[.("JFK")]
