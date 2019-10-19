@@ -11,9 +11,9 @@ Sys.setenv("AWS_SESSION_TOKEN" ="",
            "AWS_S3_ENDPOINT" = "minio.alpha.innovation.insee.eu",
            "LIBCURL_BUILD"="winssl")
 aws.s3::save_object("sirus_abstract.csv", bucket = "bigr",
-                    file = "~/sirus_abstract.csv")
+                    file = "~/data/sirus_abstract.csv")
 aws.s3::save_object("sirus_2017.csv", bucket = "bigr",
-                    file = "~/sirus_abstract.csv")
+                    file = "~/data/sirus_2017.csv")
 ```
 
 <!------
