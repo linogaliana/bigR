@@ -99,4 +99,51 @@ cppFunction('NumericVector pdistC(double x, NumericVector ys) {
   return out;
 }')
 
-C++ uses pow(), not ^, for exponentiation.
+C++ uses pow(), not ^, for exponentiation. In C++, you subset a matrix with (), not [].
+
+Use .nrow() and .ncol() methods to get the dimensions of a matrix.
+
+
+## Ecrire un programme C++ et l'exécuter avec `Rcpp::sourcecpp`
+
+Your stand-alone C++ file should have extension .cpp, and needs to start with:
+
+#include <Rcpp.h>
+using namespace Rcpp;
+
+And for each function that you want available within R, you need to prefix it with:
+
+// [[Rcpp::export]]
+
+To compile the C++ code, use sourceCpp("path/to/file.cpp"). This will create the matching R functions and add them to your current session. Note that these functions can not be saved in a .Rdata file and reloaded in a later session; they must be recreated each time you restart R. For example, running sourceCpp() on the following file implements mean in C++ and then compares it to the built-in mean():
+
+```{r, eval = FALSE}
+#include <Rcpp.h>
+using namespace Rcpp;
+
+// [[Rcpp::export]]
+double meanC(NumericVector x) {
+  int n = x.size();
+  double total = 0;
+
+  for(int i = 0; i < n; ++i) {
+    total += x[i];
+  }
+  return total / n;
+}
+
+/*** R
+library(microbenchmark)
+x <- runif(1e5)
+microbenchmark(
+  mean(x),
+  meanC(x)
+)
+*/
+```
+
+## Attributes dans other classes
+
+You’ve already seen the basic vector classes (IntegerVector, NumericVector, LogicalVector, CharacterVector) and their scalar (int, double, bool, String) and matrix (IntegerMatrix, NumericMatrix, LogicalMatrix, CharacterMatrix) equivalents.
+
+Rcpp also provides classes List and DataFrame, but they are more useful for output than input. This is because lists and data frames can contain arbitrary classes but C++ needs to know their classes in advance. If the list has known structure (e.g., it’s an S3 object), you can extract the components and manually convert them to their C++ equivalents with as(). For example, the object created by lm(), the function that fits a linear model, is a list whose components are always of the same type. 
