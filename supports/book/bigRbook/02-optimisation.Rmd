@@ -17,30 +17,31 @@ knitr::knit_engines$set(python = reticulate::eng_python)
 
 ### Introduction
 
+CommOM: il me semble que cette introduction porte sur l'ensemble de la formation serait mieux dans 01-intro.Rmd (au moins jusqu'à l'annonce de plan)
+
 L'objectif général du cours est d'offrir une introduction aux possibilités qu'offre `R` pour faire des calculs lourds et lire des bases de données volumineuses. Les deux principales ressources disponibles sur le sujet sont les ouvrages *Efficient R Programming* [@gillespie2016efficient] et *Advanced R* [@wickham2014advanced]^[Dans ce cours, on adoptera la vision de l'efficience au sens d'efficience algorithmique, i.e. la vitesse à laquelle un programme s'exécute et les ressources nécessaires pour l'accomplissement de celui-ci. Nous parlerons peu de la notion d'efficacité de programmation: quantité de travail utile qu'un programmeur peut réaliser par unité de temps. A cet égard, des astuces et règles utiles sont présentées dans la Formation *travail collaboratif sous R* et dans le livre de @gillespie2016efficient]. Cependant, ce cours approfondira des aspects superficiels de ces livres, notamment la puissance du package `data.table`.
 
-Avant de chercher à optimiser, le premier réflexe à adopter est de bien structurer le problème que l'on vise à résoudre et sélectionner le format de données et les *packages* les plus adéquats. `R` étant un langage très malléable, il existe généralement plusieurs manières de résoudre un problème: avoir un code efficace nécessite en premier lieu de choisir le meilleur outil disponible en `R`. Par exemple, si on doit passer par une boucle, il vaut mieux choisir rapidement de faire du `Rcpp` plutôt qu'écrire une boucle `R` qu'on accélèrera par la suite. Un des objectifs de ce cours est de faire connaître les outils les plus adéquats pour des problèmes génériques. Plutôt qu'essayer de paralléliser sur 16 coeurs, il est parfois préférable de bien en utiliser un seul. Casser des cailloux à 16 est mieux que tout seul mais utiliser un outil adapté fait souvent gagner plus de temps.
+Avant de chercher à optimiser, le premier réflexe à adopter est de bien structurer le problème que l'on vise à résoudre et sélectionner le format de données et les *packages* les plus adéquats. `R` étant un langage très malléable, il existe généralement plusieurs manières de résoudre un problème: avoir un code efficace nécessite en premier lieu de choisir le meilleur outil disponible en `R`. Par exemple, si on doit passer par une boucle, il vaut mieux choisir rapidement de faire du `Rcpp` plutôt qu'écrire une boucle `R` qu'on accélèrera par la suite. Un des objectifs de ce cours est de faire connaître les outils les plus adéquats pour des problèmes génériques. Plutôt qu'essayer de paralléliser sur 16 coeurs, il est parfois préférable de bien en utiliser un seul. Il est certes plus rapide de casser des cailloux à 16 plutôt que seul, mais utiliser un outil adapté fait souvent gagner plus de temps.
 
-Quand on se préoccupe d'efficacité ou de gestion de mémoire, le principal risque est la **dette technique**: un code pas très bon dont on reporte leà plus tard le moment de l'améliorer. Il s'agit, par exemple, d'un code qui utilise des boucles au lieu d'une opération vectorisée. Bien réfléchir à la structure du programme, à son découpage en parties homogènes, au format de données et aux packages mobilisables, est fondamental. C'est, probablement, le meilleur réflexe avant de chercher à optimiser.
+Quand on se préoccupe d'efficacité ou de gestion de mémoire, le principal risque est la **dette technique**: un code pas très bon dont on reporte l'amélioration à plus tard. Il s'agit, par exemple, d'un code qui utilise des boucles au lieu d'une opération vectorisée. Bien réfléchir à la structure du programme, à son découpage en parties homogènes, au format de données et aux packages mobilisables, est fondamental. C'est, probablement, le meilleur réflexe avant de chercher à optimiser.
 
 Alors que le volume de données disponibles et pouvant être combinées est croissant, le ralentissement des progrès technologiques dans l'industrie des microprocesseurs (ralentissement de la <span style="color:royalblue">**loi de Moore</span>**^[Selon cette loi, le nombre de transistors composant un micro-processeur double tous les 18 mois à coût constant. Cela implique une capacité de calcul croissant à une grande vitesse. Cette observation empirique a été globalement respectée jusqu'en 2016, date depuis laquelle les progrès ont marqué le pas.]) justifie l'utilisation croissante de capacités de calculs parallèles. L'exploitation des systèmes multi-coeurs, qui sont maintenant communs, permet de s'abstraire, partiellement, de l'effet limitant du ralentissement de la loi de Moore sur les capacités de traitement. 
 
+##### Plan du cours et packages nécessaires
 
-##### Plan du cours
+CommOM: il me semble qu'il faudrait développer le plan et articuler ça avec les packages utilisés. C'est vraiment utile pour donner une carte mentale aux participants. Voici une proposition.
 
-La première étape nécessaire pour être en mesure d'être efficace en `R` et de comprendre le fonctionnement du langage. Comprendre la manière dont `R` fonctionne permet de comprendre l'intérêt de la vectorisation ainsi que la manière dont la mémoire fonctionne en `R`. Ce détour par le language de base permettra de mieux comprendre les raisons pour lesquelles `R` est un langage plus lent qu'un langage compilé et limité lorsqu'il est question de données volumineuses.
+Voici le plan du cours, avec les packages utilisés à chaque étape:
 
-##### Packages nécessaires
+* **Etude du fonctionnement de `R`** : Bien comprendre le fonctionnement du langage `R` est un prérequis indispensable avant de se lancer dans l'optimisation en `R`. Ce détour par le langage de base permet de comprendre l'intérêt de la vectorisation, la manière dont la mémoire fonctionne en `R`, et les raisons pour lesquelles `R` est un langage plus lent qu'un langage compilé et limité lorsqu'il est question de données volumineuses. Cette partie utilisera les packages `microbenchmark` et `profvis`.
+* **Parallélisation**: Blabla. Cette partie utilisera le package `foreach`.
+* **data.table**: data.table est un package efficace en `R`, adapté pour la manipulation de données volumineuses. Cette partie utilisera le package `data.table`.
+* **Rcpp**: Blabla. Cette partie utilisera le package `Rcpp`.
 
-Les packages que nous utiliserons principalement sont les suivants:
 
-* `microbenchmark`
-* `profvis`
-* `foreach`
-* `Rcpp`
-* `data.table`
+##### Comparatif entre `R` et `python`
 
-Pour pouvoir faire le comparatif `R`-`python` que vous pouvez retrouver dans cette leçon, il est nécessaire d'utiliser le package `reticulate` qui permet de faire interagir, dans une session `R` ou un `Rmarkdown`, les objets `R` et `python`. Si vous désirez exécuter les morceaux de code appopriés, qui sont là à des fins d'exemple, vous pouvez exécuter les commandes suivantes. Cela suppose néanmoins qu'une installation de `python` se trouve au chemin donné à la commande `Sys.setenv(RETICULATE_PYTHON = ..)`^[La manière la plus simple de disposer de `python` est d'utiliser [anaconda](https://www.anaconda.com/distribution/). Le container `pocker` que j'ai créé pour pouvoir utliser l'intégration continue avec `R` et `Python` pour compiler automatiquement ce `markdown` adopte cette approche]. 
+Pour pouvoir faire le comparatif entre `R` et `python` que vous pouvez retrouver dans cette leçon, il est nécessaire d'utiliser le package `reticulate` qui permet de faire interagir, dans une session `R` ou un `Rmarkdown`, les objets `R` et `python`. Si vous désirez exécuter les morceaux de code appropriés, qui sont là à des fins d'exemple, vous pouvez exécuter les commandes suivantes. Cela suppose néanmoins qu'une installation de `python` se trouve au chemin donné par la commande `Sys.setenv(RETICULATE_PYTHON = ..)`^[La manière la plus simple de disposer de `python` est d'utiliser [anaconda](https://www.anaconda.com/distribution/). Le container `pocker` que j'ai créé pour pouvoir utliser l'intégration continue avec `R` et `Python` pour compiler automatiquement ce `markdown` adopte cette approche]. 
 
 <div class="fold s">
 ```{r check reticulate, echo=TRUE}
@@ -48,7 +49,7 @@ library(reticulate)
 
 #if (Sys.getenv("LOCAL")==""){
   # CHANGE HERE TO YOUR PATH
-#Sys.setenv(RETICULATE_PYTHON = "/opt/conda/envs/Reticulate/bin")
+Sys.setenv(RETICULATE_PYTHON = "/anaconda3/bin/python3.6")
 
 # CREATE A CONDA ENVIRONMENT JUST FOR RETICULATE
 #reticulate::use_condaenv("Reticulate")
@@ -58,24 +59,25 @@ library(reticulate)
 ```
 </div>
 
+CommOM: si tu décales l'introduction ci-dessus dans le Rmd n°1, il faudrait refaire une petite intro pour la partie 02.
 
 ### Outils utiles pour mesurer l'exécution de fonctions
 
 Nous allons utiliser deux types d'approches pour minuter la vitesse d'exécution d'un programme:
 
-* **Benchmarking**: test de performance basé sur la répétition d'opérations
-* **Profiling**: exécution d'une série de commande afin de déterminer les goulets d'étranglement
+* **Benchmarking**: test de performance basé sur la répétition d'opérations;
+* **Profiling**: exécution d'une série de commandes afin de déterminer les goulets d'étranglement.
 
 On utilise généralement la première approche lorsqu'on veut optimiser une opération pour laquelle plusieurs méthodes existent. La seconde approche permet de cibler les étapes d'un programme à cibler pour accélérer les calculs ou réduire l'utilisation de la mémoire.
 
 L'utilisation de la CPU et de la RAM peut être contrôlée en temps réel avec le gestionnaire des tâches en Windows ou la commande `htop` sur `Linux`. Avec ces outils, on peut contrôler les processus en cours, l'utilisation des différents coeurs d'un ordinateur, la RAM utilisée et celle disponible. 
 
 
-##### Microbenchmark
+##### Benchmarking avec `microbenchmark`
 
-La fonction `system.time()` est la manière la plus simple de mesurer le temps d'exécution d'une ou plusieurs fonctions. Cependant, le temps d'exécution observé n'est qu'une réalisation d'une variable aléatoire et dépend de l'utilisation, à l'instant *t*, des ressources d'un ordinateur. Pour obtenir une image plus fidèle de la vitesse d'exécution d'une fonction, et être en mesure de comparer de manière plus adéquate des temps d'exécution, le package `microbenchmark` est très pratique. Comme les fonctions évaluées sont répétées de nombreuses fois (par défaut 100), on utilise `microbenchmark` pour des opérations rapides (quitte à utiliser les fonctions évaluées sur un échantillon plus petit de données). 
+Lorsque plusieurs méthodes existent pour réaliser la même opération, une première optimisation consiste à choisir la méthode la plus rapide. Pour ce faire, e temps d'exécution d'une ou plusieurs fonctions peut être mesuré très simplement avec la fonction de base `system.time()`. Cependant, le temps d'exécution observé n'est qu'une réalisation d'une variable aléatoire et dépend de l'utilisation des ressources d'un ordinateur au moment de l'exécution de la fonction. Pour obtenir une estimation plus fiable de la vitesse d'exécution d'une fonction, et être en mesure de comparer de manière plus adéquate des temps d'exécution, le package `microbenchmark` est très pratique. Comme les fonctions évaluées sont répétées de nombreuses fois (100 fois par défaut), on utilise `microbenchmark` pour des opérations rapides (quitte à évaluer les fonctions sur un échantillon plus petit de données). 
 
-Par exemple, si on désire évaluer la performance des moyennes par groupe avec `dplyr`, `data.table` et en base `R`
+Par exemple, si on désire évaluer la performance des moyennes par groupe avec `dplyr`, `data.table` et en base `R`:
 
 <!-----
 Exercice: Utiliser le package microbenchmark pour faire une moyenne par groupe du dataframe suivant
@@ -112,11 +114,13 @@ print(micro)
 ggplot2::autoplot(micro)
 ```
 
+CommOM: il serait utile de préciser dans le texte comment se lisent les résultats.
+
 Nous reviendrons sur ce code dans le chapitre `data.table`. Ce benchmark nous indique déjà que l'approche `data.table` est plus rapide (l'ordre de grandeur est ici de l'ordre de 1 pour 4 par rapport à `dplyr` et 1 pour 40 par rapport à la solution R base.)
 
-##### Profiling
+##### Profiling avec `profvis`
 
-Le *profiling* consiste à contrôler le temps d'exécution et l'usage mémoire d'une série de commandes. C'est une approche particulièrement bien adaptée à des codes modulaires (découpés sous formes de *chunks*) puisqu'on peut vraiment contrôler les parties de code les plus gourmandes en temps ou en mémoire. Nous aurons l'occasion, dans les exercices, d'appliquer plusieurs fois la fonction `profvis` du package du même nom 
+Le *profiling* est une approche plus avancée qui consiste à contrôler le temps d'exécution et l'usage mémoire d'une série de fonction. C'est une approche particulièrement bien adaptée à des codes modulaires (découpés sous formes de morceaux appelés *chunks*) car elle permet d'isoler les parties de code les plus gourmandes en temps ou en mémoire. Nous aurons l'occasion, dans les exercices, d'appliquer plusieurs fois la fonction `profvis` du package du même nom.
 
 ```{r, eval = TRUE}
 profvis::profvis(expr = {
@@ -152,18 +156,19 @@ profvis::profvis(expr = {
 
 ```
 
-Ce package offre une belle représentation du temps passé et des usages mémoires pour chaque bout de programme. C'est particulièrement utile pour déterminer les goulets d'étranglement, et donc les morceaux à optimiser, d'un programme. Avec cet exemple, on voit que la majorité du temps est passée dans la représentation graphique, étape la plus longue et la plus exigente en mémoire. 
+Ce package offre une belle représentation du temps passé et des usages mémoires pour chaque bout de programme. C'est particulièrement utile pour déterminer les goulets d'étranglement, et donc les morceaux à optimiser, d'un programme. Avec cet exemple, on voit que la majorité du temps est passée dans la représentation graphique, étape la plus longue et la plus exigeante en mémoire. 
 
+CommOM: il me semble indispensable de bien expliquer comment se lisent les résultats. Personnellement je ne comprends pas grand-chose, et je pense que profvis peut être très utile à beaucoup d'utilisateurs.
 
 **Exercice:**
 
 Faire un `microbenchmark` d'une somme cumulative avec:
 
-1. Une boucle for
-2. Une solution utilisant `sapply`
-3. La fonction `cumsum`
+1. Une boucle `for`;
+2. Une solution utilisant `sapply`;
+3. La fonction `cumsum`.
 
-Vous pouvez créer un vecteur `x <- seq_len(100)` pour faire ce test
+Vous pouvez créer un vecteur `x <- seq_len(100)` pour faire ce test.
 
 <div class="fold s">
 ```{r}
@@ -198,31 +203,32 @@ Vous pouvez apprécier la différence de vitesse entre un code vectorisé (`cums
 
 ### Comprendre les ordinateurs pour comprendre `R`
 
-Un ordinateur est une réalisation concrête d’une machine de Turing, c'est-à-dire une
-machine traitant des informations et capable en principe de prendre comme donnée n’importe quel algorithme et de l’exécuter.
+Un ordinateur est une réalisation concrète d’une machine de Turing, c'est-à-dire une
+machine traitant des informations et capable en principe de prendre comme donné n’importe quel algorithme et de l’exécuter.
 
 ##### Principes généraux
 
-Les deux principaux constituants d’un ordinateur sont la **mémoire principale** et le **processeur** ou **CPU** (Central Processing Unit). La mémoire principale permet de stocker de l’information (programmes et données), tandis que le processeur exécute pas à pas les instructions composant les programmes.
+Les deux principaux constituants d’un ordinateur sont la **mémoire principale** et le **processeur** ou **CPU** (*Central Processing Unit*). La mémoire principale permet de stocker de l’information (programmes et données), tandis que le processeur exécute pas à pas les instructions composant les programmes.
 
+CommOM: il n'y a pas les bus sur le schéma.
 
 L'interaction entre les différentes composantes d'un ordinateur suit l’architecture de Von-Neumann:
 
 1. Le <span style="color:royalblue">**processeur (CPU pour Central Processing Unit)**</span> est conceptuellement décomposé en:
-    + une *unitée de contrôle (UC)*: séquence les opérations
-    + une *unitée de calcul arithmétique et logique (UAL)*: exécution des opérations de base
-    + un *registre*
+    + une *unitée de contrôle (UC)*: séquence les opérations;
+    + une *unitée de calcul arithmétique et logique (UAL)*: exécute des opérations de base;
+    + un *registre*.
 2. La <span style="color:royalblue">**mémoire**</span>: contient à la fois les données et le programme
-exécuté par l’unité de contrôle
-    + *Mémoire vive ou volatile (RAM pour random access memory)*: contient programmes et données en cours de traitement
-    + *Mémoire permanente (ROM pour read only memory)*: stocke programmes et données de base de la machine
-3. <span style="color:royalblue">**Dispositifs d'entrée-sortie (input/output)**</span>: périphériques qui permettent de communiquer avec le monde extérieur
-4. <span style="color:royalblue">**Canaux de communication (les bus)**</span> entre la mémoire, le processeur et les périphériques
+exécuté par l’unité de contrôle:
+    + *Mémoire vive ou volatile (RAM pour random access memory)*: contient les programmes et les données en cours de traitement;
+    + *Mémoire permanente (ROM pour read only memory)*: stocke les programmes et les données de base de la machine.
+3. <span style="color:royalblue">**Dispositifs d'entrée-sortie (input/output)**</span>: périphériques qui permettent de communiquer avec le monde extérieur.
+4. <span style="color:royalblue">**Canaux de communication (les bus)**</span> entre la mémoire, le processeur et les périphériques.
 
 
 ![](./pics/architecture_von_neumann.png)
 
-La **carte mère** est le support physique permettant la coordination de l’ensemble des éléments intervenant dans le fonctionnement d’un ordinateur.
+La **carte-mère** est le support physique permettant la coordination de l’ensemble des éléments intervenant dans le fonctionnement d’un ordinateur.
 
 Si l’architecture de Von-Neumann se caractérise par sa grande souplesse, elle présente en revanche trois gros inconvénients :
 
@@ -232,28 +238,30 @@ Si l’architecture de Von-Neumann se caractérise par sa grande souplesse, elle
 
 Le **système d'exploitation** dirige l'utilisation des ressources d'un ordinateur. Cela donne l'illusion que de nombreux processus peuvent être exécutés en même temps. Cela provient de la conjonction de deux effets : d’une part, les instructions exécutées par l’ordinateur sont extrêmement rapides (de l’ordre de quelques dizaines de millisecondes) et d’autre part, le système d’exploitation utilise les temps d’attente dans l’exécution d’une tâche pour orienter les ressources de l’ordinateur (micro-processeur + RAM...) vers l’exécution d’une autre tâche. Le fait que la plupart des ordinateurs soient maintenant dotés de plusieurs processeurs permet, si les applications sont adaptées, d’exécuter réellement plusieurs tâches simultanément. Malgré tout, le nombre d’instructions effectuées simultanément reste habituellement très inférieur au nombre d’applications en fonctionnement simultané.
 
-##### Langage interprété vs compilé
+##### Langages interprétés et langages compilés
+
+CommOM: il me semble important de bien expliquer la différence entre un langage interprété et un langage compilé (différence qui m'échappe un peu).
 
 `R` est un langage interprété (comme `python`), par opposition aux langages compilés (`C++` par exemple). Par rapport à l’interpréteur, le compilateur présente l’inconvénient de retarder l’exécution d’un programme mais une fois compilé, le fichier exécutable obtenu est particulièrement rapide (moins de surcouche vers le langage machine).
 
 Certains packages (par exemple `compiler`) proposent d'accélérer les traitements en transformant des exécutions interprétées (du code `R` standard) en instructions compilées (`bytecode`). C'est une méthode, assez simple puisque c'est le package qui gère cette traduction, pour accélérer certains programmes. Depuis `R 3.5.0` (avril 2018), les fonctions intégrées à des packages sont automatiquement compilées, ce qui accélère les temps d'exécution sans effort de programmation. 
 
 
-#### Le processeur (CPU)
+#### Le processeur ou CPU (*Central Processing Unit*)
 
 
-Le processeur (ou micro-processeur) est considéré comme le coeur de l’ordinateur. C’est lui qui attribut des tâches simples aux périphériques et à la RAM tandis qu’il exécute les tâches les plus compliquées. Il est responsable de l’exécution d’un programme. Le processeur est un circuit éléctronique complexe (circuit intégré) qui exécute chaque instruction très rapidement, en quelques **cycles d’horloges**. Toute l’activité de l’ordinateur est cadencée par une horloge unique, de façon à ce que tous les circuits électroniques travaillent tous ensemble de façon synchronisée. La fréquence de cette horloge s’exprime en `MHz` (millions de cyles par seconde) ou `GHz` (milliards de cycles par secondes). Par exemple, le processeur *Intel Core i5-6300U* qui équipe les postes nomades INSEE possède une horloge cadencée à 2,40 GHz.
+Le processeur (ou micro-processeur) est considéré comme le coeur de l’ordinateur. C’est lui qui attribue des tâches simples aux périphériques et à la RAM tandis qu’il exécute les tâches les plus compliquées. Il est responsable de l’exécution d’un programme. Le processeur est un circuit éléctronique complexe (circuit intégré) qui exécute chaque instruction très rapidement, en quelques **cycles d’horloges**. Toute l’activité de l’ordinateur est cadencée par une horloge unique, de façon à ce que tous les circuits électroniques travaillent tous ensemble de façon synchronisée. La fréquence de cette horloge s’exprime en `MHz` (millions de cyles par seconde) ou `GHz` (milliards de cycles par secondes). Par exemple, le processeur *Intel Core i5-6300U* qui équipe les postes nomades Insee possède une horloge cadencée à 2,40 GHz.
 
-Un processeur est défini, entre autres, par :
+Un processeur est défini, entre autres, par:
 
-1. La largeur de ses registres internes de manipulation de données. Les registres sont des mémoires de petite taille (quelques octets), suffisamment rapides pour que l’UAL puisse manipuler leur contenu à chaque cycle de l’horloge. Les deux largeurs les plus communes sont 32 et 64 bits.
+1. La largeur de ses registres internes de manipulation de données. Les registres sont des mémoires de petite taille (quelques octets), suffisamment rapides pour que l’UAL puisse manipuler leur contenu à chaque cycle de l’horloge. Les deux largeurs les plus communes sont 32 et 64 bits;
 2. La cadence de son horloge exprimée en MHz ou GHz ;
-3. Le nombre de noyaux de calcul (core). Le chapitre sur la parallélisation reviendra sur ce point.
+3. Le nombre de noyaux de calcul (*cores*). Le chapitre sur la parallélisation reviendra sur ce point.
 
-Le processeur est principalement divisé en deux parties
+Le processeur est principalement divisé en deux parties:
 
 1. L’unité de contrôle: responsable de la lecture en mémoire principale et du décodage des instructions ;
-2. L’unité de calcul arithmétique et logique (UAL): exécute les instructions qui manipulent les données. C’est elle qui effectue les opérations algébriques (somme, différence, produit, rapport) et logiques (disjonction, conjonction, négation) usuelles
+2. L’unité de calcul arithmétique et logique (UAL): exécute les instructions qui manipulent les données. C’est elle qui effectue les opérations algébriques (somme, différence, produit, rapport) et logiques (disjonction, conjonction, négation) usuelles.
 
 Ces deux unités communiquent avec la mémoire principale, la première pour lire les instructions, la seconde pour recevoir/transmettre des données binaires, mais ils communiquent également avec les différents périphériques (clavier, souris, écran, etc.).
 
@@ -278,10 +286,10 @@ quatre étapes lors du traitement des instructions (architecture de Von Neumann)
   
 ------>
 
-#### La mémoire vive ou RAM (random access memory)
+#### La mémoire vive ou RAM (*random access memory*)
 
 La mémoire est divisée en bytes qui sont des emplacements (des cases mémoires contiguës) de taille fixe utilisés pour stocker instructions et données. Il est facile de confondre les termes `bit` et `byte`: un `bit` (contraction de *binary digit*) est l'élement de base de l'ordinateur, le `byte` stocke plusieurs éléments.
-En principe, la taille d’un emplacement mémoire pourrait être quelconque ; en fait, la plupart des ordinateurs en service aujourd’hui utilisent des emplacements mémoire d’un octet (soit 8 bits)^[Aujourd'hui, les termes bytes et octets sont utilisés de manière relativement indistincte même si, conceptuellement, il s'agit de notions différentes. Le byte est le nombre de bits nécessaire pour coder un caractère. Il s'agit ainsi de la plus petite unité logique adressable par un programme sur un ordinateur. Les bytes de 8 bits se sont généralisés dans les ordinateurs modernes même si, conceptuellement, les bytes pouvaient être de longueur différente. Par le passé, les caractères ASCII dominaient l'informatique. Il s'agissait d'un ensemble de 128 caractères qui ne nécessitaient que 7 bits ($2^7=128$) mais en utilisaient 8 pour optimiser la performance. La définition d'un octet est d'être une unité composée de 8 bits. C'est la généralisation des bytes à 8 bits qui explique la correspondance entre ces deux termes. En informatique, si l'on veut explicitement désigner une quantité de huit bits, on utilise le mot octet ; tandis que si l'on veut exprimer l'unité d'adressage indépendamment du nombre de bits, on utilise le mot byte. ]. Les séquences de bytes sont elles-mêmes regroupées en mots mémoire dont la taille est déterminée par celle des registres de l'ordinateur (32 ou 64 bits)^[Les processeurs 32 bits ne peuvent normalement pas adresser plus de 4 Gio ($2^{32}$ octets) de mémoire centrale, tandis que les processeurs 64 bits peuvent en adresser 16 Eio ($2^{64}$ octets). C'est pourquoi dès qu'il y a plus de 4 Gio de RAM sur une machine, la mémoire au-delà de ce seuil ne sera directement adressable qu'en mode 64 bits].
+En principe, la taille d’un emplacement mémoire pourrait être quelconque ; en pratique, la plupart des ordinateurs en service aujourd’hui utilisent des emplacements mémoire d’un octet (soit 8 bits)^[Aujourd'hui, les termes bytes et octets sont utilisés de manière relativement indistincte même si, conceptuellement, il s'agit de notions différentes. Le byte est le nombre de bits nécessaire pour coder un caractère. Il s'agit ainsi de la plus petite unité logique adressable par un programme sur un ordinateur. Les bytes de 8 bits se sont généralisés dans les ordinateurs modernes même si, conceptuellement, les bytes pouvaient être de longueur différente. Par le passé, les caractères ASCII dominaient l'informatique. Il s'agissait d'un ensemble de 128 caractères qui ne nécessitaient que 7 bits ($2^7=128$) mais en utilisaient 8 pour optimiser la performance. La définition d'un octet est d'être une unité composée de 8 bits. C'est la généralisation des bytes à 8 bits qui explique la correspondance entre ces deux termes. En informatique, si l'on veut explicitement désigner une quantité de huit bits, on utilise le mot octet ; tandis que si l'on veut exprimer l'unité d'adressage indépendamment du nombre de bits, on utilise le mot byte.]. Les séquences de bytes sont elles-mêmes regroupées en mots mémoire dont la taille est déterminée par celle des registres de l'ordinateur (32 ou 64 bits)^[Les processeurs 32 bits ne peuvent normalement pas adresser plus de 4 Go ($2^{32}$ octets) de mémoire centrale, tandis que les processeurs 64 bits peuvent en adresser 16 Eo ($2^{64}$ octets). C'est pourquoi dès qu'il y a plus de 4 Go de RAM sur une machine, la mémoire au-delà de ce seuil ne sera directement adressable qu'en mode 64 bits].
 
 <!---Il existe au moins 3 types de mémoire vive : SD, SSD et DDR-SDRAM (d’accès plus rapide).---->
 
@@ -296,11 +304,11 @@ Bit representation | Caractère
 
 La RAM possède les caractéristiques suivantes :
 
-1. Un mot dans la mémoire peut aussi bien représenter une instruction dans un programme, qu’un entier ou une couleur selon l’interprétation que lui donne l’utilisateur.
-2. Elle est inerte dans le sens où elle sert juste de support de stockage de l’information.
+1. Un mot dans la mémoire peut aussi bien représenter une instruction dans un programme, qu’un entier ou une couleur selon l’interprétation que lui donne l’utilisateur;
+2. Elle est inerte dans le sens où elle sert juste de support de stockage de l’information;
 3. Tout mot mémoire possède une adresse (codé sous la forme d’un entier) lui permettant d’être lu rapidement par le microprocesseur.
 
-Lorsque la mémoire vive arrive à saturation en raison d’une utilisation instantanée intensive de l’ordinateur, une partie du disque dur peut-être utilisée par le microprocesseur : on appelle cela le *swap*. Dans ce cas, le temps d’exécution des instructions est beaucoup plus lent (de l’ordre de 1000 fois).
+Lorsque la mémoire vive arrive à saturation en raison d’une utilisation instantanée intensive de l’ordinateur, une partie du disque dur peut être utilisée par le microprocesseur : on appelle cela le *swap*. Dans ce cas, le temps d’exécution des instructions est beaucoup plus lent (de l’ordre de 1000 fois).
 
 <!----------
 Seul le processeur peut modifier l’état de la mémoire. Chaque emplacement mémoire conserve les informations que le processeur y écrit jusqu’à coupure de l’alimentation électrique, où tout le contenu est perdu (contrairement au contenu des mémoires externes comme
@@ -347,6 +355,8 @@ appelé langage assembleur
 
 #### Comparer la performance de R par rapport à d'autres utilisateurs
 
+CommOM: je pense que cette section serait mieux ailleurs, car elle coupe la logique 1/ comment fonctionne un ordinateur; 2/ comment R fonctionne. Je pense que tu pourrais la rajouter en premier dans la partie où tu présentes microbenchmark et profvis.
+
 Le package `benchmarkme` est conçu pour faire tourner quelques calculs standardisés afin de comparer la performance de `R` à d'autres utilisateurs qui ont accepté de partager la performance de leur ordinateur. 
 
 ```{r, eval = FALSE}
@@ -374,13 +384,15 @@ Le poste utilisé pour les tests a des performances médianes: sans être catast
 >
 > *John Chambers*
 
-Appeler une function `R` revient en fait à appeler, de manière plus ou moins directe, un code `C` ou `Fortran` Les fonctions de base sont généralement des appels implicites à une fonction `C` sous-jacente. Par exemple, la fonction `runif()` contient une unique ligne qui est un appel à la fonction  `C_runif()`
+Appeler une fonction `R` revient en fait à appeler, de manière plus ou moins directe, une fonction codée en `C` ou en `Fortran`. Par exemple, la fonction `runif()` contient une unique ligne qui est un appel à la fonction  `C_runif()`.
 
 ```{r runif C call}
 body(runif)
 ```
 
 Les fonctions développées en `C++` grâce au package `Rcpp` fonctionnent de la même manière. Par exemple, la fonction que j'ai développée 
+
+CommOM: je ne comprends pas: tu as développée une fonction pour `dplyr`?
 
 ```{r}
 dplyr::between
@@ -391,7 +403,7 @@ fonctionne comme un *wrapper* d'une fonction sous-jacente en `C++` qui est, elle
 dplyr:::`_dplyr_between`
 ```
 
-Pour obtenir de bonnes performances en `R`, il est important d'accéder aux routines sous-jacentes `C` ou `Fortran` le plus rapidement possible. Appeler des fonctions ayant un coût en termes de temps, il est important de minimiser, autant que possible, le nombre d'appels pour accéder aux fonctions `C` ou `Fortran`.
+Pour obtenir de bonnes performances en `R`, il est important d'accéder aux routines sous-jacentes `C` ou `Fortran` le plus rapidement possible. Dans la mesure où appeler une fonction a un coût en terme de temps d'exécution, il est important de minimiser autant que possible le nombre d'appels pour accéder aux fonctions `C` ou `Fortran`.
 
 Ce principe explique la lenteur des boucles en `R`. Par exemple, en supposant que `x` soit un vecteur standard, 
 
@@ -416,7 +428,7 @@ nécessite
 * *n* appels à la fonction `[<-` (assignation);
 * 2 appels supplémentaires: un à la fonction `for` et l'autre `seq_len()`.
 
-En soi, la boucle *for* n'est pas longue mais les appels de fonctions sont bien trop nombreux pour la rendre compétitive. C'est parce que les appels de fonctions sous `R` impliquent des sur-couches par rapport à un langage compilé comme `C` ou `C++` qui accède plus directement au langage machine. Les méthodes de compilation à la volée (*just-in-time compilation*) telles qu'implémentées par le package `compiler` permettent d'accélérer les boucles mais il reste toujours préférable d'adopter une approche plus adaptée à R ou, si c'est impossible, de privilégier une boucle `C++` [@eddelbuettel2011rcpp].
+La boucle *for* n'est pas longue en soi, mais les appels de fonctions sont bien trop nombreux pour la rendre compétitive. En effet, les appels de fonctions sous `R` impliquent des sur-couches par rapport à un langage compilé comme `C` ou `C++` qui accède plus directement au langage machine. Les méthodes de compilation à la volée (*just-in-time compilation*) telles qu'implémentées par le package `compiler` permettent d'accélérer les boucles mais il reste toujours préférable d'adopter une approche plus adaptée à R ou, si c'est impossible, de privilégier une boucle `C++` [@eddelbuettel2011rcpp].
 
 
 
@@ -425,7 +437,7 @@ En soi, la boucle *for* n'est pas longue mais les appels de fonctions sont bien 
 
 **Exercice**
 
-Utilisez le package `microbenchmark` pour comparer la solution de l'addition vectorielle à la version boucle. Faites la comparaison en variant les tailles de vecteur (conseil: créez deux fonction `plus_one` et `plus_one_for` prenant comme paramètre `n` qui est utilisé pour générer une variable aléatoire de taille `n`)
+Utilisez le package `microbenchmark` pour comparer la solution de l'addition vectorielle à la version boucle. Faites la comparaison en variant les tailles de vecteur (conseil: créez deux fonctions `plus_one` et `plus_one_for` prenant comme paramètre `n` qui est utilisé pour générer une variable aléatoire de taille `n`)
 
 <div class="fold s">
 ```{r microbenchmark vectorisation}
@@ -461,6 +473,8 @@ ggplot2::autoplot(results_plus_one)
 </div>
 
 ##### Aparté: comparaison des boucles avec Python et C++
+
+CommOM: passez cette partie en annexe? Histoire de bien se concentrer sur les deux particularités de R: langage de haut niveau et intensif en RAM.
 
 De nombreux tests de performance sont disponibles en ligne, notamment sur cette [page](https://h2oai.github.io/db-benchmark/). On propose un test plus modeste de comparaison des performances de `Python`, `R` et `C++`. Pour exécuter du code `Python` depuis `R`, on utilise le package `Reticulate`^[Pour les personnes utilisant l'intégration continue, cela nécessite d'adapter le dépôt `rocker` généralement utilisé. Un exemple que je propose est le dépôt `pocker`, disponible sur [dockerhub](https://cloud.docker.com/u/linogaliana/repository/docker/linogaliana/pocker) [github](https://github.com/linogaliana/pocker), [gitlab](https://gitlab.com/linogaliana/pocker). Pour une explication de la raison d'être d'une image `docker` de ce type, ce [post](https://linogaliana.netlify.com/post/pocker/pocker-a-docker-container-to-use-r-and-python-together/)].
 
@@ -589,11 +603,11 @@ ggplot2::ggplot(data = exec_times) + ggplot2::geom_violin(ggplot2::aes(x = langa
 
 ### Mémoire
 
-`R` est un langage qui a une utilisation intensive de la RAM. C'est ce qui permet au langage d'être assez rapide mais créé des difficultés lorsque les données sont volumineuses dans un environnement où la RAM est contrainte (les postes nomades de l'INSEE ont 8Go de RAM ; les ressources d'un serveur sont partagées entre tous les utilisateurs). Dans cette partie, nous verrons qu'outre l'import de données, la gourmandise de `R` provient de la manière dont les objets sont copiés en mémoire lorsqu'ils sont modifiés.
+**`R` est un langage qui a une utilisation intensive de la RAM**. C'est ce qui permet au langage d'être assez rapide mais crée des difficultés lorsque les données sont volumineuses et/ou lorsqu'on travaille dans un environnement où la RAM est contrainte (les postes nomades de l'Insee ont 8Go de RAM; les ressources d'un serveur sont partagées entre tous les utilisateurs). Dans cette partie, nous verrons qu'outre l'import de données, la gourmandise de `R` provient de la manière dont les objets sont copiés en mémoire lorsqu'ils sont modifiés.
 
-Le livre de @wickham2014advanced est une ressource précieuse sur le sujet. De nombreux exemples de cette section sont tirés de cet ouvrage. On utilisera le package `pryr` en supplément de `profvis` pour contrôler l'usage mémoire
+Le livre de @wickham2014advanced est une ressource précieuse sur le sujet. De nombreux exemples de cette section sont tirés de cet ouvrage. On utilisera le package `pryr` en supplément de `profvis` pour contrôler l'usage mémoire.
 
-#### Bases de la mémoire en `R`
+#### Bases de la gestion de la mémoire en `R`
 
 Pour comprendre les besoins mémoire de `R`, on peut exécuter le code suivant qui inspecte la taille mémoire d'un vecteur en fonction de sa longueur:
 
@@ -603,9 +617,9 @@ plot(0:50, sizes, xlab = "Length", ylab = "Size (bytes)",
   type = "s")
 ```
 
-La première conclusion est que même un objet vide occupe 40 bytes de mémoire (soit $40 \times 8 = 320$ bits). La seconde est que le besoin mémoire de `R` n'est pas tout à fait linéaire: la progression est en escalier. C'est parce que demander au système de la mémoire (appel caché à la fonction `malloc()`) est une opération coûteuse. Demander la mémoire à la volée ralentirait profondément `R`. A la place, `R` demande de la mémoire par bloc et organise ceux-ci tant qu'ils ne sont pas pleins. Passé une taille critique (128 bytes), `R` arrêt de demander des emplacements en puissance de 2 (8, 16, 32, 48, 64, 128) pour être plus flexible. 
+La première conclusion est que même un objet vide occupe 40 bytes de mémoire (soit $40 \times 8 = 320$ bits). La seconde est que le besoin mémoire de `R` n'est pas tout à fait linéaire: la progression est en escalier. C'est parce que demander au système de la mémoire (appel caché à la fonction `malloc()`) est une opération coûteuse. Demander la mémoire à la volée ralentirait considérablement l'exécution de `R`. A la place, `R` demande de la mémoire par blocs et organise ceux-ci tant qu'ils ne sont pas pleins. Passé une taille critique (128 bytes), `R` arrêt de demander des emplacements en puissance de 2 (8, 16, 32, 48, 64, 128) pour être plus flexible. 
 
-`R` gère lui-même la mémoire que le système lui alloue. Il le fait de manière à être le plus parcimonieux possible. Cela se retrouve dans le comportement de copie à l'identique. Un même emplacement peut être partagé par plusieurs objets, ce qui limite l'inflation en mémoire:
+**`R` gère lui-même la mémoire que le système lui alloue.** Il le fait de manière à être le plus parcimonieux possible. Cela se retrouve dans le comportement de copie à l'identique. Un même emplacement peut être partagé par plusieurs objets, ce qui limite l'inflation en mémoire:
 
 ```{r}
 x <- 1:1e6
@@ -614,6 +628,8 @@ pryr::object_size(x)
 y <- list(x, x, x)
 pryr::object_size(y)
 ```
+
+CommOM: tu pourrais parler de *deep copy* versus *shallow copy*, non?
 
 `y` ne pèse pas trois fois plus que `x`. `R` fait pointer `y` vers `x` plutôt que le copier. Cet usage particulier de la mémoire est, comme nous le verrons, une des raisons de l'efficience des assignations par référence et donc du package `data.table`. 
 
@@ -626,17 +642,19 @@ pryr::object_size(rep("banana", 10))
 ```
 
 
-#### Utilisation de la mémoire
+#### Utilisation, libération et... saturation de la mémoire
 
-`pryr::mem_used()` permet de connaître la mémoire consommée par l'ensemble des objets `R`. La consommation de mémoire totale est néanmoins différente car cela n'inclut que les objets stockés actuellement en mémoire et pas l'ensemble de la mémoire qui a été allouée par `R`. Par exemple,  si un objet volumineux a été supprimé, `R` ne rend pas nécessairement la mémoire libérée à l'OS. De même, ce chiffre n'incorpore pas le poids mémoire de l'interpréteur `R` (ni de l'IDE utilisé, par exemple `Rstudio`). Pour connaître le poids mémoire effectif, il faut utiliser `htop` (Linux) ou le gestionnaire de tâches de Windows.   
+CommOM: je pense que cette section pourrait être mis en dernier, ce serait peut-être plus cohérent: 1/ base de la mémoire; 2/ il y a deux comportements de copie donc 3/ les besoins en mémoire d'opérations similaires sont très différents selon le mode de copie donc 4/ la consommation de RAM est difficile à suivre, d'où A/ Le risque de saturation de la RAM, B/ l'utilisation de `htop` et `pryr`, C/ l'importance de faire des `gc()`.
+
+**La fonction `pryr::mem_used()` permet de connaître la mémoire consommée par l'ensemble des objets `R`.** 
 
 ```{r}
 pryr::mem_used()
 ```
 
+Cette fonction ne mesure toutefois pas la consommation totale de mémoire de `R` car elle ne prend en compte que les objets stockés actuellement en mémoire et pas l'ensemble de la mémoire qui a été allouée par `R`. Par exemple, si un objet volumineux a été supprimé, `R` ne rend pas nécessairement au système d'exploitation la mémoire ainsi libérée. De même, ce chiffre n'incorpore pas le poids mémoire de l'interpréteur `R` (ni de l'IDE utilisé, par exemple `Rstudio`). Pour connaître le poids mémoire effectif, il faut utiliser `htop` (Linux) ou le gestionnaire de tâches de Windows.   
 
-Dans certains langages, il est nécessaire d'expliciter supprimer des objets pour que leur espace mémoire soit libéré. `R` adopte une approche différence, celle du **garbage collection** (GC). GC libère automatiquement la mémoire occupée par un objet qui n'existe plus (en inspectant les espaces qui pointent vers des noms d'objets n'existant pas). 
-
+CommOM: il me semble utile de commenter dans le texte le code suivant, pour que les lecteurs comprennent bien de quoi il est question. Personnellement, je ne comprends pas tout. Je comprends que la consommation mémoire est difficile à suivre en regardant simplement le code.
 
 ```{r}
 # Create a big object
@@ -653,8 +671,11 @@ pryr::mem_change(rm(y))
 
 ```
 
-Les problèmes de saturation de la RAM se traduisent généralement par un message du type `cannot allocate a vector of size ** Mb` (quand la session ne *crash* pas...). Même si `R` effectue des GC fréquemment, il me semble nécessaire d'appeler la commande `gc()` de temps en temps (en particulier après l'appel d'une fonction ayant effectué un gros traitement) pour rendre de la RAM à l'OS. Sur un serveur partagé, cela permet de réduire les risques de saturation à cause de sessions inactives qui n'ont plus besoin de la mémoire qu'elles mobilisent^[@wickham2014advanced dans son ouvrage développe l'idée que la commande `gc()` est inutile car la GC étant automatique, évoquer `gc()` ne libère aucun espace mémoire mais prend du temps. En pratique, je trouve que c'est faux (`gc()` permet souvent de libérer plusieurs `gigas`) et que sur un serveur partagé, c'est une règle de bonne conduite pour permettre à chacun d'avoir des chances de disposer de mémoire quand il en a besoin.]. 
+CommOM: il y a une erreur dans la première phrase du paragraphe suivant, que je ne sais pas comment corriger.
 
+Dans certains langages, il est nécessaire d'expliciter supprimer des objets pour que leur espace mémoire soit libéré. `R` adopte une approche différente, celle du **garbage collection** (GC). GC libère automatiquement la mémoire occupée par un objet qui n'existe plus (en inspectant les espaces qui pointent vers des noms d'objets n'existant pas). Même si `R` effectue fréquemment des GC, **il est nécessaire d'appeler la commande `gc()` de temps en temps (en particulier après l'appel d'une fonction ayant effectué un gros traitement) pour rendre de la RAM au système d'exploitation.** Sur un serveur partagé, cela permet de réduire les risques de saturation à cause de sessions inactives qui n'ont plus besoin de la mémoire qu'elles mobilisent^[@wickham2014advanced dans son ouvrage développe l'idée que la commande `gc()` est inutile car la GC étant automatique, évoquer `gc()` ne libère aucun espace mémoire mais prend du temps. En pratique, je trouve que c'est faux (`gc()` permet souvent de libérer plusieurs gigaoctets) et que sur un serveur partagé, c'est une règle de bonne conduite pour permettre à chacun d'avoir des chances de disposer de mémoire quand il en a besoin.]. 
+
+Outre la lenteur d'exécution, **le principal risque d'une mauvaise gestion de la mémoire est d'aboutir à une saturation de la RAM**. Les problèmes de saturation de la RAM se traduisent généralement par un message du type `cannot allocate a vector of size ** Mb` (quand la session ne *crashe* pas...). 
 
 #### Modification d'objets
 
@@ -663,7 +684,7 @@ Deux manières de modifier un objet sont possibles en `R`:
 * **In-place modification**: `R` modifie `x` en place. Cela signifie que le nouvel objet prend la place mémoire de l'ancien. C'est une approche économe en mémoire. Les modifications de `data.table` sur lesquels nous reviendrons sont beaucoup plus efficaces et économes en mémoire que celles sur un `tibble` ou un `data.frame` parce que ce package est construit sur la modification par référence qui étend la modification en place.
 * **Copy-on-modify**: `R` effectue une copie temporaire de `x` vers une nouvelle adresse, modifie la copie et ensuite pointe le nom de `x` vers le nouvel emplacement.
 
-Selon les circonstances, R va faire de la modification en place ou en copie. Les fonctions de remplacement primitives (`[[<-, [<-, @<-, $<-, attr<-, attributes<-, class<-, dim<-, dimnames<-, names<-, and levels<-`) modifie en place. Ce n'est pas le cas des autres fonctions d'assignation: `[<-.data.frame` n'étant pas une fonction primitive, elle effectuera de la modification en copie. 
+Selon les circonstances, `R` va faire de la modification en place ou en copie. Les fonctions de remplacement primitives (`[[<-, [<-, @<-, $<-, attr<-, attributes<-, class<-, dim<-, dimnames<-, names<-, and levels<-`) modifient en place. Ce n'est pas le cas des autres fonctions d'assignation: `[<-.data.frame` n'étant pas une fonction primitive, elle effectuera de la modification en copie. 
 
 **Exercice**
 
@@ -703,7 +724,7 @@ x[5] <- 6L
 ```
 </div>
 
-Comme @wickham2014advanced l'évoque, il est compliqué d'éviter les modifications par copie. S'il est nécessaire de les éviter pour des raisons de vitesse ou de mémoire, utiliser `Rcpp` ou `data.table` peut s'imposer.
+Comme @wickham2014advanced l'évoque, il est compliqué d'éviter les modifications par copie. S'il est nécessaire de les éviter pour des raisons de vitesse ou de mémoire, l'utilisation `Rcpp` ou `data.table` peut s'imposer.
 
 Nous avons déjà évoqué un facteur à l'origine des boucles `for`: les appels répétés aux fonctions. Néanmoins, la raison principale de la lenteur des boucles provient généralement du comportement de copie de `R`. Lorsqu'on effectue une boucle sur un `data.frame`, chaque itération de la boucle copie cet objet. 
 
@@ -745,7 +766,7 @@ for(i in 1:5) {
 ```
 </div>
 
-Comme vous pouvez le voir, le `data.frame` est copié à chaque itération, et cela plusieurs fois. C'est parce que la fonction `[<-.data.frame` n'est pas une fonction primitive. En utilisant des listes, on peut être beaucoup plus efficace
+Comme vous pouvez le voir, le `data.frame` est copié à chaque itération, et cela plusieurs fois. C'est parce que la fonction `[<-.data.frame` n'est pas une fonction primitive. L'utilisation des listes permet d'être beaucoup plus efficace.
 
 **Exercice**
 
@@ -768,7 +789,7 @@ for(i in 1:5) {
 
 #### Pré-allocation de la mémoire
 
-A cause du comportement de copie, il faut faire attention à l'allocation de mémoire lorsqu'on désire ajouter des éléments à un objet. Comme nous allons le voir, il est préférable de pré-allouer la taille d'un objet plutôt que de le faire croître ou alors utiliser une liste. 
+En raison du comportement de copie, il faut faire attention à l'allocation de mémoire lorsqu'on désire ajouter des éléments à un objet. Comme nous allons le voir, il est préférable de pré-allouer la taille d'un objet plutôt que de le faire croître ou alors utiliser une liste.
 
 **Exercice**
 
@@ -839,7 +860,7 @@ La méthode optimale est bien-sûr celle utilisant la fonction adaptée. La mét
 
 La pré-allocation est une manière de réduire les besoins mémoires et donc d'accélérer le code. Une autre solution est l'utilisation de listes, qui peut être pratique lorsqu'on ne connaît pas la taille d'un élément à l'avance. Les listes, contrairement aux vecteurs ou matrices, stockent leurs éléments dans des emplacements mémoires non contigües ce qui permet d'ajouter un élément sans copier le reste de l'objet et permet ainsi la modification par passage.  
 
-
+CommOM: tu dis qu'utiliser des listes c'est bien. Je pense qu'il faut faire un paragraphe spécifique là-dessus, où tu donnes tous les avantages, et un ou deux exemples.
 
 
 ### Conclusion
