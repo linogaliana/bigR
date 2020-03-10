@@ -8,7 +8,7 @@ knitr::opts_knit$set(root.dir = "~")
 ```
 
 
-`R` est réputé être un langage lent et de nombreux exemples sur internet proposent des comparatifs de vitesse qui suggèrent que `python` est plus rapide (nous avons déjà proposé un petit comparatif dans l'introduction de ce cours). Il est vrai que le langage de base `R` est lent mais, pour être honnête, avec le développement de `data.table` et `tidyverse`, la grammaire de base est de moins en moins utilisée de manière exclusive. Pour rendre réellement compte des performances du langage `R`, il convient donc de mesurer les vitesses d'exécution de ces deux approches. A ce jeu, `data.table` est très performant:
+`R` est réputé être un langage lent et de nombreux exemples sur internet proposent des comparatifs de vitesse qui suggèrent que `python` est plus rapide (nous avons déjà proposé un petit comparatif dans l'introduction de ce cours). Il est vrai que le langage de base `R` est lent mais le développement de packages tels que `data.table` et `tidyverse` ont pour conséquence que la grammaire de base est de moins en moins utilisée de manière exclusive. Ainsi, pour rendre réellement compte des performances du langage `R`, il convient de mesurer les vitesses d'exécution de ces deux approches. A ce jeu, le package `data.table` est très performant:
 
 
 <!--------
@@ -19,34 +19,32 @@ knitr::include_graphics("./pics/comparatifH2O.png")
 </div>
 -------->
 
-Dans ce chapitre, nous allons exlorer la manière dont `data.table` permet de résoudre efficacement de nombreuses tâches de maniement de données. Nous comparerons la vitesse et les besoins en mémoire par rapport à une approche `tidyverse`. Pour approfondir certains aspects du package (notamment l'indexation secondaire que nous laisserons de côté), plusieurs vignettes sont disponibles sur la [page de documentation](https://github.com/Rdatatable/data.table/wiki/Getting-started) du package^[Ce cours couvre de manière transversale les vignettes du package: *"Introduction to data.table"* ; *"Keys and fast binary search based subset"* ; *"Reference semantics"* : *"Efficient reshaping using data.tables"*. Les autres vignettes *"Benchmarking data.table"* et *"Secondary indices and auto indexing"* sont intéressantes également] et un résumé des commandes standards est disponible [ici](https://github.com/Rdatatable/data.table/wiki).  
+Dans ce chapitre, nous allons explorer la manière dont `data.table` permet de résoudre efficacement de nombreuses tâches de maniement de données (import, manipulation, tri, jointure). Nous comparerons la vitesse et les besoins en mémoire par rapport à une approche `tidyverse`. Pour approfondir certains aspects du package (notamment l'indexation secondaire que nous laisserons de côté), plusieurs vignettes sont disponibles sur la [page de documentation](https://github.com/Rdatatable/data.table/wiki/Getting-started) du package^[Ce cours couvre de manière transversale les vignettes du package: *"Introduction to data.table"* ; *"Keys and fast binary search based subset"* ; *"Reference semantics"* : *"Efficient reshaping using data.tables"*. Les autres vignettes *"Benchmarking data.table"* et *"Secondary indices and auto indexing"* sont intéressantes également] et un résumé des commandes standards est disponible [ici](https://github.com/Rdatatable/data.table/wiki). La *cheatsheet* proposée par l'équipe Rstudio est disponible [ici](https://github.com/rstudio/cheatsheets/blob/master/datatable.pdf).
 
+CommOM: j'ai l'impression que tu fais un comparatif un peu long entre `data.table` et `tidyverse`, ça vaut le coup d'en faire une partie.
 
-**Sur la grammaire** La syntaxe `data.table` a mauvaise presse auprès des utilisateurs de `dplyr` (ce [post](https://stackoverflow.com/questions/21435339/data-table-vs-dplyr-can-one-do-something-well-the-other-cant-or-does-poorly) `stack overflow` est un bon exemple de la guerre larvée entre les utilisateurs des deux approches.^[On peut d'ailleurs y retrouver une réponse extensive d'Hadley Wickham (créateur dplyr) et des créateurs de `data.table` comparant et justifiant les deux approches.]). Il y a un coût d'apprentissage à la syntaxe `data.table` lorsqu'on est un habitué à la grammaire du `tidyverse`. Cependant, comme ces deux approches reposent sur la philosophie du `split`-`apply`-`combine`, passé la forme différente, ce qu'on sait faire avec l'un peut facilement être traduit avec l'autre. Je recommande vivement la consultation de ce [post](https://atrebas.github.io/post/2019-03-03-datatable-dplyr/) qui compare de manière extensive les deux grammaires. Les 5 verbes fondamentaux du `tidyverse` (`filter`, `select`, `mutate`, `arrange` et `summarise`) ont une traduction en `data.table`. Comme Hadley Wickham (créateur de `dplyr`) l'évoque, il est vrai que sans connaissance de `data.table`, les verbes équivalents sont moins intelligibles que ceux du `tidyverse`. En revanche, une fois habitué, cette syntaxe est très puissante et permet de réaliser des opérations très complexes de manière assez aisée (peut-être plus qu'en utilisant les *nested* dataframes du tidyverse)^[A titre personnel, maintenant que j'y suis habitué, j'ai une préférence pour la syntaxe `data.table` après avoir été un grand utilisateur/amateur du `tidyverse`.].
+## Le choc des géants: `data.table` *versus* `tidyverse`
 
+**Sur la grammaire** La syntaxe `data.table` a mauvaise presse auprès des utilisateurs de `dplyr`^[ce [post](https://stackoverflow.com/questions/21435339/data-table-vs-dplyr-can-one-do-something-well-the-other-cant-or-does-poorly `stack overflow` est un bon exemple de la guerre larvée entre les utilisateurs des deux approches. On peut d'ailleurs y retrouver une réponse extensive d'Hadley Wickham (créateur dplyr) et des créateurs de `data.table` comparant et justifiant les deux approches.]). Il est effectivement certain que passer à la syntaxe `data.table` induit un coût d'apprentissage pour les utilisateurs habitués à la grammaire du `tidyverse`. Cependant, comme ces deux approches reposent sur la philosophie du `split`-`apply`-`combine`, passé la forme différente, ce qu'on sait faire avec l'un peut facilement être traduit avec l'autre^[Je recommande vivement la consultation de ce [post](https://atrebas.github.io/post/2019-03-03-datatable-dplyr/) qui compare de manière extensive les deux grammaires]. Les 5 verbes fondamentaux du `tidyverse` (`filter`, `select`, `mutate`, `arrange` et `summarise`) ont ainsi une traduction en `data.table`. Comme Hadley Wickham (créateur de `dplyr`) l'évoque, il est vrai que sans connaissance de `data.table`, les verbes équivalents sont moins intelligibles que ceux du `tidyverse`. En revanche, une fois que l'utilisateur est familiarisé avec elle, cette syntaxe est très puissante et permet de réaliser des opérations très complexes de manière assez aisée (peut-être plus qu'en utilisant les *nested* dataframes du tidyverse)^[A titre personnel, maintenant que j'y suis habitué, j'ai une préférence pour la syntaxe `data.table` après avoir été un grand utilisateur/amateur du `tidyverse`.].
 
-**Pourquoi faire du `data.table` quand on sait faire du `tidyverse`?**  La citation ci-dessous, issue du [post](https://stackoverflow.com/questions/21435339/data-table-vs-dplyr-can-one-do-something-well-the-other-cant-or-does-poorly) déjà évoqué, souligne bien que l'objectif de ce cours, qui est de traiter efficacement de grosses bases de données en `R`, ne correspond pas à un cas d'usage autour duquel le `tidyverse` est construit: 
+**Pourquoi utiliser `data.table` quand on sait utiliser le `tidyverse`?**  Hadley Wickham, l'un des créateurs du `tidyverse`, y répond lui-même:
 
-> Memory and performance [...] to me, they're not that important. Most R users work with well under 1 million rows of data, and dplyr is sufficiently fast enough for that size of data that you're not aware of processing time. We optimise dplyr for expressiveness on medium data; feel free to use data.table for raw speed on bigger data.
+> Memory and performance [...] to me, they're not that important. Most R users work with well under 1 million rows of data, and `dplyr` is sufficiently fast enough for that size of data that you're not aware of processing time. We optimise `dplyr` for expressiveness on medium data; feel free to use `data.table` for raw speed on bigger data.
 > Hadley Wickham ([lien](https://stackoverflow.com/questions/21435339/data-table-vs-dplyr-can-one-do-something-well-the-other-cant-or-does-poorly/27840349#27840349))
 
-`data.table` est plus rapide mais est aussi moins gourmand en `RAM`. Il s'agit donc d'une solution intéressante pour des bases de données de grosses tailles (comme les données administratives) mais qui rentrent encore en mémoire. Nous verrons dans le dernier chapitre des solutions *out-of-memory* pour les bases qui ne peuvent être lues en `R` parce que trop volumineuses (ou pour lesquelles des traitements statistiques, par exemple une régression linéaire, amènerait à saturer la RAM)
+Autrement dit, **traiter efficacement de grosses bases de données en `R` ne correspond pas aux cas d'usage pour lesquels le `tidyverse` a été développé**. Le package `data.table` est plus rapide mais est aussi moins gourmand en `RAM`. Il s'agit donc d'une solution intéressante pour des bases de données de grosses tailles (comme les données administratives) mais dont le volume reste inférieur à la mémoire disponible. Nous verrons dans le dernier chapitre des solutions *out-of-memory* pour les bases qui ne peuvent être lues en `R` parce que trop volumineuses (ou pour lesquelles des traitements statistiques, par exemple une régression linéaire, amèneraient à saturer la RAM).
 
-**data.table en production** `data.table` ne dépend que de `R` base et n'importe de fonctions que du package `methods` (présent dans la distribution de base de `R`). Cela signifie que le package est extrêmement robuste puisque la distribution `R` base est très stable. Le `tidyverse` étant un écosystème très récent, il est beaucoup moins stable que `data.table`. Pour des projets en production, on peut donc se fier à `data.table` ; à condition de faire attention aux effets induits du comportement de passage par référence sur lequel on reviendra.  
+CommOM: Je pense que cette partie sur data.table en production est très intéressante, et hyper utile pour les utilisateurs. Tu pourrais peut-être la développer un peu. Un point à reformuler peut-être: veux-tu dire que data.table est extrêmement robuste en général, ou plutôt que l'absence de dépendances fait qu'il est peu probable qu'un code data.table casse suite à une mise à jour, contrairement à l'écosystème tidyverse qui a beaucoup de dépendances?
+
+**Avantages de `data.table` en production par rapport au `tidyverse`**: `data.table` ne dépend que de `R` base et n'importe que quelques fonctions du package `methods` (présent dans la distribution de base de `R`). Cela signifie que ce package est extrêmement robuste puisque la distribution `R` base est très stable. Le `tidyverse` étant un écosystème très récent avec de nombreuses dépendances, il est beaucoup moins stable que `data.table`. Pour des projets en production, on peut donc se fier à `data.table` ; à condition de faire attention aux effets induits du comportement de passage par référence sur lequel on reviendra.
 
 L'utilisation de `dplyr` en production peut poser problème. En effet, il ne s'agit pas d'un langage de programmation fonctionnelle mais d'une syntaxe visant à faciliter le maniement de données. `dplyr` étant un package jeune, il n'est pas aussi stable que `data.table`: certaines fonctionnalités peuvent rapidement ne plus être maintenues au profit d'autres.
 
-
-
 ## Principe
 
-`data.table` est un package qui propose une version améliorée des objets de base que sont les `data.frames`. Cependant, contrairement aux dataframes, on peut faire beaucoup plus que sélectionner des lignes ou des colonnes dans les crochets `df[...]`. En fait, on peut penser les instructions à l'intérieur du crochet comme des requêtes SQL mises en forme différemment. L'une des forces du package, sur lequel nous reviendrons, est que de nombreuses fonctionnalités de celui-ci reposent sur la modification par référence: pour créer une colonne `y = x+1` on n'a pas besoin de perdre du temps et mobiliser de la mémoire pour effectuer une copie temporaire du dataframe. 
+### Le `data.table`, un `data.frame` amélioré
 
-La syntaxe `data.table` prend la forme générale
-
-![Structure de la syntaxe data.table](./pics/DTstructure.PNG)
-
-On peut convertir un objet en data.table en utilisant `data.table::setDT` ou `data.table::as.data.table`. Pour créer un data.table, on utilisera la fonction `data.table::data.table` comme on utiliserait la fonction `data.frame` pour créer un dataframe. Comme avec un `tibble`, la visualisation est améliorée par rapport à un `data.frame` standard:
+Le package `data.table` propose une version améliorée du `data.frame` de base: le `data.table` (surprenant, non?). On peut convertir un objet en data.table en utilisant `data.table::setDT()` ou `data.table::as.data.table()`. Pour créer un data.table, on utilisera la fonction `data.table::data.table()` comme on utiliserait la fonction `data.frame()` pour créer un dataframe. Comme avec un `tibble`, la visualisation est améliorée par rapport à un `data.frame` standard:
 
 ```{r}
 dt <- data.table::data.table(x = runif(1e4), y = runif(1e3))
@@ -61,33 +59,46 @@ data.table::as.data.table(iris)
 options(datatable.print.class = FALSE)
 ```
 
+### La syntaxe de `data.table`: l'opérateur `[...]`
 
+Dans un `data.frame` de base, on peut utiliser les crochets `df[...]` uniquement pour sélectionner des lignes ou des colonnes. Dans un `data.table`, on peut faire beaucoup plus de choses avec les crochets `dt[...]`. En fait, les instructions à l'intérieur des crochets peuvent être conçues comme des requêtes SQL mises en forme différemment. L'une des forces du package, sur lequel nous reviendrons, est que de nombreuses fonctionnalités de celui-ci reposent sur la modification par référence: pour créer une colonne `y = x+1` on n'a pas besoin de perdre du temps et mobiliser de la mémoire pour effectuer une copie temporaire du dataframe. 
 
-Les `data.table` héritant de caractéristiques des `data.frame`, on peut normalement leur appliquer toutes les méthodes qui s'appliquent aux `data.frames` de base. En particulier, on peut appliquer les fonctions de maniement des données du `tidyverse` aux `data.tables`: on peut utiliser `stringr` pour le maniement de caractères, `lubridate` pour des colonnes temporelles, etc. Avant d'appliquer une fonction du `tidyverse` à un `data.table`, il peut être utile de vérifier qu'il n'existe pas un équivalent déjà proposé par le package `data.table`. Par exemple, plutôt que d'utiliser la fonction `stringr::str_split_fixed` pour séparer une colonne en fonction d'un caractère, on utilisera `data.table::tstrsplit`:
+La syntaxe `data.table` prend la forme générale:
+
+![**Structure de la syntaxe data.table**](./pics/DTstructure.PNG)
+
+CommOM: je mettrais bien ici un exemple très simple sur un tout petit dataframe, avec l'équivalent `dplyr`. Un truc du genre: dt[x > 3, sum(y), by = z] et df %>% filter(x > 3) %>% group_by(z) %>% summarise(sum(y)).
+
+Cette syntaxe est beaucoup moins bavarde que celle du `tidyverse` et est donc déroutante pour les débutants.
+
+### Quelles fonctions peut-on utiliser avec un `data.table`?
+
+Les `data.table` héritant de caractéristiques des `data.frames`, on peut normalement leur appliquer toutes les méthodes qui s'appliquent aux `data.frames` de base. En particulier, on peut appliquer les fonctions de maniement des données du `tidyverse` aux `data.tables`: on peut utiliser `stringr` pour le maniement de caractères, `lubridate` pour des colonnes temporelles, etc. Avant d'appliquer une fonction du `tidyverse` à un `data.table`, il est néanmoins utile de vérifier qu'il n'existe pas un équivalent déjà proposé par le package `data.table`. Par exemple, plutôt que d'utiliser la fonction `stringr::str_split_fixed()` pour séparer une colonne en fonction d'un caractère, on utilisera `data.table::tstrsplit()`:
 
 ```{r benchmark strsplit}
 dt <- data.table::data.table(x = paste0("x_",runif(1e4)))
 df <- dplyr::as_tibble(dt)
 
 m <- microbenchmark::microbenchmark(
-  dt[,data.table::tstrsplit(dt$x, "_", fixed = TRUE)],
+  dt[ , data.table::tstrsplit(dt$x, "_", fixed = TRUE)],
   stringr::str_split_fixed(df$x,"_", n = 2)
 )
 ggplot2::autoplot(m)
 m
 ```
 
-Sur ce problème simple, la solution `data.table` est 2 fois plus rapide. On proposera, tout au long de ce chapitre, des alternatives `data.table` aux 5 verbes fondamentaux de la grammaire `tidyverse` (`filter`, `select`, `mutate`, `arrange` et `summarise`). Il existe un package `dtplyr` qui propose des fonctions identiques à celles de `dplyr` (`filter`, `mutate`...) sur des objets `data.table`. Comme il s'agit d'une surcouche (qui traduit une fonction `dplyr` en l'équivalent `data.table` implicitement) il y a une perte (limitée) de performance inhérente à l'utilisation de ce package. Ce package a pour principalement inconvénient de ne pas proposer la copie par référence permise par l'opérateur `:=` (sur lequel nous reviendrons) dans le verbe équivalent `mutate` ; une des forces du package `data.table` disparaît. 
+Sur ce problème simple, la solution `data.table` est deux fois plus rapide. On proposera, tout au long de ce chapitre, des alternatives `data.table` aux 5 verbes fondamentaux de la grammaire `tidyverse` (`filter`, `select`, `mutate`, `arrange` et `summarise`). 
 
+A noter qu'il existe un package `dtplyr` qui propose des fonctions identiques à celles de `dplyr` (`filter`, `mutate`...) sur des objets `data.table`. Comme il s'agit d'une surcouche (qui traduit une fonction `dplyr` en l'équivalent `data.table` implicitement) il y a une perte (limitée) de performance inhérente à l'utilisation de ce package. Ce package a pour principalement inconvénient de ne pas proposer la copie par référence permise par l'opérateur `:=` (sur lequel nous reviendrons) dans le verbe équivalent `mutate` ; une des forces du package `data.table` disparaît. 
 
-
-### Aparté: sur l'évaluation standard 
-
+### Aparté: évaluation standard et évaluation non-standard en `R`
 
 Il existe deux manières de faire référence à un objet en `R`:
 
+CommOM: il manque la définition de l'évaluation standard, non? Je ne comprends pas très bien cette partie, je veux bien la retravailler avec toi si cela te semble utile.
+
 * L'évaluation standard:
-* L'évaluation non-standard: les noms font référence
+* L'évaluation non-standard: les noms font référence.
 
 <!----
 les noms font référence aux valeurs. Si on tape `x`, c'est qu'on fait référence à l'objet dans l'environnement global qui s'appelle `x`
@@ -100,11 +111,11 @@ Approche   | Evaluation standard (SE) | Evaluation non standard (NSE)  |
 `dplyr`    |  `df %>% dplyr::filter(x < 10)` | `df %>% dplyr::filter(!!rlang::sym("x")<10)`
 `dplyr`    |  `df[x<10]`              | `df[get('x')<10]`
 
-En évaluation non standard, l'objet `x` est compris comme faisant partie de l'environnement en question (par exemple le dataframe `df` ou le data.table `dt`). Ce n'est que s'il n'existe pas dans cet environnement que `R` cherchera dans l'environnement global
+En évaluation non-standard, l'objet `x` est compris comme faisant partie de l'environnement en question (par exemple le dataframe `df` ou le data.table `dt`). Ce n'est que s'il n'existe pas dans cet environnement que `R` cherchera dans l'environnement global.
 
-`data.table` et `dplyr` reposent tous deux sur l'ingration standard (on cite les noms de colonnes sous la forme `dt[,x]` ou `df %>% mutate(x)` ce qui relève de l'intégration standard). L'intégration de l'évaluation standard, qui est à la fois pratique dans une approche de programmation fonctionnelle (on peut passer des noms de variable en argument d'une fonction) et désirable pour la reproductibilité des programmes est ardue à mettre en oeuvre dans `dplyr` alors qu'elle est très simple en `data.table`^[Si vous ne me croyez pas, essayer de comprendre du premier coup la [vignette dplyr](https://dplyr.tidyverse.org/articles/programming.html) sur le sujet]. 
+`data.table` et `dplyr` reposent tous deux sur l'intégration standard (on cite les noms de colonnes sous la forme `dt[,x]` ou `df %>% mutate(x)` ce qui relève de l'intégration standard). L'intégration de l'évaluation standard, qui est à la fois pratique dans une approche de programmation fonctionnelle (on peut passer des noms de variable en argument d'une fonction) et désirable pour la reproductibilité des programmes est ardue à mettre en oeuvre dans `dplyr` alors qu'elle est très simple en `data.table`^[Si vous ne me croyez pas, essayer de comprendre du premier coup la [vignette dplyr](https://dplyr.tidyverse.org/articles/programming.html) sur le sujet]. 
 
-Il est possible d'appliquer de l'évaluation non standard de deux autres manières en `data.table`. Elles sont présentées ici mais ne seront pas approfondies^[Les personnes familières avec la syntaxe `unix` retrouveront une similarité entre les `..` en `data.table` et sur le terminal. C'est le même principe qui s'applique: `..` signifie "un niveau au-dessus": `..` signale à `data.table` de rechercher les variables `select_cols` un niveau au-dessus, i.e. dans l'environnement global dans ce cas.]:
+Il est possible d'appliquer de l'évaluation non-standard de deux autres manières en `data.table`. Elles sont présentées ici mais ne seront pas approfondies^[Les personnes familières avec la syntaxe `unix` retrouveront une similarité entre les `..` en `data.table` et sur le terminal. C'est le même principe qui s'applique: `..` signifie "un niveau au-dessus": `..` signale à `data.table` de rechercher les variables `select_cols` un niveau au-dessus, i.e. dans l'environnement global dans ce cas.]:
 
 ```{r, eval = FALSE}
 select_cols = c("x", "y")
@@ -118,16 +129,15 @@ Le lecteur intéressé pourra se reporter aux vignettes `data.table` sur le suje
 
 Pour montrer l'intérêt des fonctions d'import de `data.table` nous allons utiliser la base de données `sirus` 2017 (extrait de `Sirene`) qui avait servi au [hackathon](https://github.com/SSP-Lab/Hackathon-2018) de l'INSEE en 2018. Le fichier fait 2GB sur disque et environ 3.5 GB en RAM une fois importé entièrement dans `R`. 
 
-
 ### Comparaison des fonctions de lecture
 
 Dans ce premier comparatif, on va comparer les vitesses d'exécution des fonctions:
 
-* `data.table::fread`
-* `readr::read_csv`
-* `read.csv` du langage de base
+* `data.table::fread()`;
+* `readr::read_csv()`;
+* `read.csv()` du langage de base.
 
-On utilise le fichier `sirus_abstract.csv` qui est un extrait de sirus sur un million d'observations. Mon ordinateur a 4 coeurs et 8 Go de RAM. 
+On utilise le fichier `sirus_abstract.csv` qui est un extrait de sirus sur un million d'observations. Mon ordinateur a 4 coeurs et 8 Go de RAM.
 
 ```{r, eval = FALSE}
 # Code ayant généré sirus_abstract.csv
@@ -142,13 +152,29 @@ La fonction de lecture du package `data.table` est `fread` pour *fast read*. Ell
 
 **Exercice**
 
-Faire un profiling, avec la fonction `profvis::profvis` des méthodes suivantes (n'hésitez pas à consulter l'aide de chaque fonction pour obtenir le nom des arguments)
-
-1. `read.csv` en faisant attention à ne pas oublier l'option `stringsAsFactors = FALSE` et l'argument `sep`
-2. `readr::read_csv` en désactivant la barre de progrès
-3. `data.table::fread` en désactivant également la barre de progrès
+1.  Importer les données avec chacune des méthodes suivantes (n'hésitez pas à consulter l'aide de chaque fonction pour obtenir le nom des arguments):
+a.  `read.csv` en faisant attention à ne pas oublier l'option `stringsAsFactors = FALSE` et l'argument `sep`;
+b.  `readr::read_csv` en désactivant la barre de progrès;
+c.  `data.table::fread` en désactivant également la barre de progrès;
+2.  Faire un profiling avec la fonction `profvis::profvis` de chacune des méthodes.
 
 Je recommande d'appeler la commande `gc()` entre chaque commande pour mesurer de manière plus précise les besoins en mémoire spécifiques à chaque méthode. 
+
+
+Voici la solution pour importer les données:
+<div class="fold s">
+```{r, eval = FALSE}
+df_1 <- read.csv("~/data/sirus_abstract.csv",
+                 sep = ",",
+                 stringsAsFactors = FALSE) 
+df_2 <- readr::read_csv("~/data/sirus_abstract.csv",
+                        progress = FALSE) 
+df_3 <- data.table::fread("~/data/sirus_abstract.csv",
+                          showProgress = FALSE)
+```
+</div>
+
+Voici la comparaison des besoins en mémoire:
 
 ```{r}
 
@@ -167,14 +193,14 @@ profvis::profvis({
 })
 ```
 
-La fonction `data.table` est à la fois
+La fonction `data.table::fread()` est à la fois:
 
-* plus rapide: 3 secondes contre 6 pour `readr` et 18 pour la fonction de base (en console. Les résultats peuvent différer dans le rendu du `markdown`)
-* moins gourmande en RAM: pour importer un jeu de données faisant environ 400MB en RAM, il est nécessaire d'utiliser 900 MB pour readr et 1.3GB pour la fonction de base. `data.table` est lui très parcimonieux puisqu'il ne nécessite pas plus que les 400MB nécessaires.
+* **plus rapide**: 3 secondes contre 6 pour `readr` et 18 pour la fonction de base (en console. Les résultats peuvent différer dans le rendu du `markdown`);
+* **moins gourmande en RAM**: pour importer un jeu de données faisant environ 400MB en RAM, il est nécessaire d'utiliser 900 MB pour `readr` et 1.3GB pour la fonction de base. `data.table` est lui très parcimonieux puisqu'il ne nécessite pas plus que les 400MB nécessaires.
 
-La fonction de base est très lente. Pourtant, elle est codée en `C` comme la fonction de `data.table`. Le principal problème avec la fonction de base, que les fonctions `readr` et `fread` évitent est d'importer l'ensemble du fichier sous forme `character` et convertir a posteriori les colonnes pouvant l'être sous des formats numériques. Les fonctions `read_csv` et `fread` inspectent le fichier avant de l'importer (les premières lignes pour `read_csv` ; les premières et dernières lignes pour `fread`)
+La fonction de base `read.csv` est très lente. Pourtant, elle est codée en `C` comme la fonction de `data.table`. Le principal problème de la fonction de base (que les fonctions `readr` et `fread` évitent) est qu'elle importe l'ensemble du fichier sous forme `character` et convertit *a posteriori* les colonnes pouvant l'être sous des formats numériques. Les fonctions `read_csv` et `fread` inspectent le fichier avant de l'importer (les premières lignes pour `read_csv` ; les premières et dernières lignes pour `fread`).
 
-On peut utiliser l'option `verbose = TRUE` pour avoir une meilleure idée de la manière dont `fread` fonctionne
+On peut utiliser l'option `verbose = TRUE` pour avoir une meilleure idée de la manière dont `fread` fonctionne:
 
 ```{r, eval=FALSE}
 df_3 <- data.table::fread("~/data/sirus_abstract.csv",
@@ -185,27 +211,27 @@ df_3 <- data.table::fread("~/data/sirus_abstract.csv",
 
 Jusqu'à présent, on importait le fichier sans considération de l'information qui nous intéressait. Il arrive souvent que l'on ne soit intéressé que par une partie d'un fichier (certaines colonnes, un échantillon de lignes). Pour cela, on peut utiliser quelques options de la fonction `data.table::fread`:
 
-* `nrows`: on ne garde que *N* lignes
-* `select`: on ne sélectionne que les colonnes qui nous intéressent
-* `drop`: on abandonne des colonnes qui ne nous intéressent pas
-* `cmd`: commande shell à exécuter lors de la lecture. Il s'agit d'une option très puissante que l'on va utiliser uniquement pour sélectionner un sous-échantillon des données à partir d'une expression régulière
+* `nrows`: on ne garde que *N* lignes;
+* `select`: on ne sélectionne que les colonnes qui nous intéressent;
+* `drop`: on abandonne des colonnes qui ne nous intéressent pas;
+* `cmd`: commande shell à exécuter lors de la lecture. Il s'agit d'une option très puissante que l'on va utiliser uniquement pour sélectionner un sous-échantillon des données à partir d'une expression régulière.
 
 L'objectif est d'être moins gourmand en RAM en ne gardant que les observations (lignes ou colonnes) qui nous intéressent. 
 
 
-Par exemple, on peut n'importer qu'une ligne `nrows = 1` pour connaître le nom des colonnes
+Par exemple, on peut n'importer qu'une ligne `nrows = 1` pour connaître le nom des colonnes:
 ```{r}
 cols <- colnames(
   data.table::fread("~/data/sirus_2017.csv", nrows = 1)
 )
 ```
 
-On va utiliser ce vecteur `cols` par la suite donc gardez le dans l'environnement. Maintenant qu'on peut visualiser les colonnes, on peut importer les parties du fichier qui nous intéressent
+On va utiliser ce vecteur `cols` par la suite donc gardez-le dans l'environnement. Maintenant qu'on peut visualiser les colonnes, on peut importer les parties du fichier qui nous intéressent.
 
 **Exercice** 
 
-1. Utiliser l'option `select` pour garder les colonnes `sirus_id`, `nic`, `ape`, `eff_3112_et`
-2. Utiliser l'option `drop` et le vector `cols` pour éliminer les colonnes qui commencent par `adr_` ou `eff_`. Vous pouvez utiliser, pour filtrer `cols`: une expression régulière et `grepl` ou la fonction de base `startsWith`. Si vous êtes à l'aise avec le package `stringr` ou `stringi` il y a aussi la possibilité de les utiliser
+1. Utiliser l'option `select` pour garder les colonnes `sirus_id`, `nic`, `ape`, `eff_3112_et`;
+2. Utiliser l'option `drop` et le vector `cols` pour éliminer les colonnes qui commencent par `adr_` ou `eff_`. Vous pouvez utiliser, pour filtrer `cols`: une expression régulière et `grepl` ou la fonction de base `startsWith`. Si vous êtes à l'aise avec le package `stringr` ou `stringi` vous pouvez les utiliser.
 
 ```{r}
 # Question 1 ---------------
@@ -226,19 +252,21 @@ profvis::profvis({
 })
 ```
 
-Les options précédentes permettaient de sélectionner des colonnes. Pour filtrer des lignes, on peut utiliser une commande `shell`. C'est une fonctionnalité très puissante parce qu'elle permet 
+Les options précédentes permettaient de sélectionner des colonnes. Pour filtrer des lignes, on peut utiliser une commande `shell`. C'est une fonctionnalité très puissante parce qu'elle permet:
 
-1. D'éviter de charger des données qui mobilisent de la mémoire temporairement. Comme on l'a évoqué dans le chapitre 1, `R` a une gestion globale des données caractères: faire le filtre avant de charger les données évite d'ajouter des éléments au cache pour les supprimer ensuite
-2. Les commandes *shell* sont plus rapides que des surcouches `R`
+1. d'éviter de charger des données qui mobilisent de la mémoire temporairement. Comme on l'a évoqué dans le chapitre 1, `R` a une gestion globale des données caractères: faire le filtre avant de charger les données évite d'ajouter des éléments au cache pour les supprimer ensuite;
+2. Les commandes *shell* sont plus rapides que des surcouches `R`.
 
+CommOM: ce point m'a l'air intéressant (je ne connaissais pas cette possibilité), mais c'est peut-être trop avancé pour un public qui découvre `data.table` et qui ne se sert peut-être jamais du shell? A mettre en annexe?
 
 **Exercice**
 
 Je recommande de tester sur le fichier `sirus_abstract.csv` avant d'essayer sur `sirus_2017.csv`
 
-1. On ne va garder que des observations où apparaît la ville TOULOUSE.
-2. On ne va garder que les observations où n'apparaît pas la ville TOULOUSE
+CommOM: ah bah forcément, c'est Toulouse, pas Dunkerque!
 
+1. On ne va garder que des observations où apparaît la ville TOULOUSE.
+2. On ne va garder que les observations où n'apparaît pas la ville TOULOUSE.
 
 ```{r}
 # git_bash <- "C:\Users\W3CRK9\AppData\Local\Programs\Git\git-bash.exe"
@@ -251,10 +279,9 @@ df <- data.table::fread(cmd = 'grep TOULOUSE ~/data/sirus_abstract.csv')
 df <- data.table::fread('grep -v TOULOUSE ~/data/sirus_abstract.csv')
 ```
 
-La commande `cmd` permet d'exécuter beaucoup plus que des commandes `grep`. Toute commande shell peut être utilisée. Le problème sur Windows provient du fait que la commande sous-jacente (`system`) fait appel à l'invite de commande DOS qui est beaucoup moins complète qu'un terminal `unix`^[On peut trouver [ici](https://happygitwithr.com/shell.html) une explication de la manière dont le terminal `git` peut se substituer, dans `Rstudio` au terminal `cmd` Windows. 
-]
+La commande `cmd` permet d'exécuter beaucoup plus que des commandes `grep`. Toute commande shell peut être utilisée. Le problème sur Windows provient du fait que la commande sous-jacente (`system`) fait appel à l'invite de commande DOS qui est beaucoup moins complète qu'un terminal `unix`^[On peut trouver [ici](https://happygitwithr.com/shell.html) une explication de la manière dont le terminal `git` peut se substituer, dans `Rstudio` au terminal `cmd` Windows.].
 
-L'avantage de filtrer sur les lignes avec `cmd` est le gain de temps
+L'avantage de filtrer sur les lignes avec `cmd` est le gain de temps:
 
 ```{r}
 system.time(
