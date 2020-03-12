@@ -6,3 +6,6 @@
 *supports/**/*.html
 data/
 *_files/
+/render*
+
+*.utf8.md
