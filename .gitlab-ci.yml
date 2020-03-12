@@ -1,27 +1,19 @@
+variables:
+  GIT_SSL_NO_VERIFY: "1"
+
 before_script:
    - export PATH="/opt/conda/bin:$PATH"
+   - Rscript -e "devtools::install_deps()"
+   - Rscript -e "install.packages(c('httr', 'openssl', 'roxygen2', 'rsconnect', 'xml2', 'devtools'), dependencies = TRUE)"
 
-article:
-  image: linogaliana/pocker
+
+pages:
   stage: deploy
+  image: git-registry.stable.innovation.insee.eu/w3crk9/pocker
   script:
-    - Rscript -e "devtools::install_deps()"
-    - Rscript ./build.R
-    - echo "Rmarkdown compilation worked"
+    - Rscript -e "bookdown::render_book('./index.Rmd', output_dir = 'public')"
   artifacts:
     paths:
-      - html
-    when: always
-    
-article2:
-  image: rocker/r-parallel
-  stage: deploy
-  script:
-    - Rscript -e "install.packages(c('httr', 'openssl', 'roxygen2', 'rsconnect', 'xml2', 'devtools'), dependencies = TRUE)"
-    - Rscript -e "devtools::install_deps()"
-    - Rscript ./build2.R
-    - echo "Rmarkdown compilation worked"
-  artifacts:
-    paths:
-      - html2
-    when: always
+      - public
+  only:
+    - master
