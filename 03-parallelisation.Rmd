@@ -29,37 +29,47 @@ Règle: ne jamais optimizer prématurément
 https://books.google.fr/books?id=xaWyDgAAQBAJ&pg=PR9&lpg=PR9&dq=parallel+Rcpp+group+by&source=bl&ots=4CmQXgYd8v&sig=ACfU3U28I6J4EcQ4tx_SJi9QEjUnc7gMSw&hl=fr&sa=X&ved=2ahUKEwj5qcak2sjjAhUSJhoKHaxEDXUQ6AEwCHoECAkQAQ#v=onepage&q=parallel%20Rcpp%20group%20by&f=false
 -------------->
 
+<!----
 CommOM: Remarques générales:
 - Je parlerais systématiquement de "parallélisation" et jamais de "parallélisme";
 - Attention à proposer une traduction française de tous les termes techniques anglais;
 - Je ne suis pas très au clair sur la distinction coeur/processeur. Je te laisse juge de la pertinence des termes.
+----->
 
 ## Principe
 
+<!----
 CommOM: Je ferais un paragraphe "Principe" beaucoup plus court, avec un exemple qui arriverait très vite, pour bien fixer les idées. Je mettrais toutes les remarques sur forces et faiblesses de la parallélisation juste après (dans le paragraphe suivant). Je pense qu'il faut bien expliquer qu'on fait tourner plusieurs processeurs au lieu d'un seul (car ce n'est sûrement pas clair pour tout le monde), et qu'il y a des processeurs maîtres des processeurs esclaves. Je comprends que les stratégies split-apply-combine et divide and conquer désignent la même chose (est-ce bien cela?). Tu pourrais également développer le parallèle (héhé) entre parallélisation et utilisation des fonction *apply (pour bien expliquer qu'on transforme un gros problème en une liste de petits problèmes, qu'on distribue ensuite à différents processeurs). Je pense que ça aiderait. Je propose une restructuration en ce sens.
+----->
 
-On parle de calcul parallèle lorsque des calculs sont effectués de manière simultanée sur plusieurs processeurs travaillant *en parallèle*, par opposition à une exécution séquentielle des calculs sur un seul processeur. Dans l'exemple ci-dessous, on peut faire une somme par groupe en traitant séparément les groupes: chaque processeur fait la somme pour un groupe, indépendamment des autres, puis on rassemble les résultats pour tous les groupes pour obtenir le résultat final.
+On parle de calcul parallèle lorsque des calculs sont effectués de manière simultanée sur plusieurs processeurs ou coeurs (un processeur ayant plusieurs coeurs) travaillant *en parallèle*, par opposition à une exécution séquentielle des calculs sur un seul processeur. Dans l'exemple ci-dessous, on peut faire une somme par groupe en traitant séparément les groupes: chaque processeur fait la somme pour un groupe, indépendamment des autres, puis on rassemble les résultats pour tous les groupes pour obtenir le résultat final.
 
-![](./pics/split_apply_combine.png)
+![Source: https://thinkr.fr/utiliser-la-grammaire-dplyr-pour-triturer-ses-donnees/](./pics/split_apply_combine.jpeg)
 
-La stratégie généralement adoptée est celle du `split`-`apply`-`combine` également appelée `divide and conquer`. On commence par découper (*split*) les données en blocs homogènes, indépendants. Sur ces blocs, on exécute (*apply*) des fonctions. Enfin, on regroupe les résultats (*combine*). On parle parfois de modèle `master`- `slave` ou `master`- `worker`: le processeur-maître (`master`) se charge des étapes *split* et *combine*, laissant l'étape *apply* aux processeurs-esclaves (`slaves`). 
+La stratégie généralement adoptée, illustrée ci-dessus, est celle du `split`-`apply`-`combine` également appelée `divide and conquer`. On commence par découper (*split*) les données en blocs homogènes, indépendants. Sur ces blocs, on exécute (*apply*) des fonctions. Enfin, on regroupe les résultats (*combine*). On parle parfois de modèle `master`- `slave` ou `master`- `worker`: le processeur-maître (`master`) se charge des étapes *split* et *combine*, laissant l'étape *apply* aux processeurs-esclaves (`slaves`). 
 
-Dans le scénario le plus simple, comme ci-dessus, la combinaison des données revient à une simple concaténation. Comme nous le verrons avec `spark`, l'étape finale peut être plus complexe.
+Dans le scénario le plus simple, comme ci-dessus, la combinaison des données revient à une simple concaténation. Comme nous le verrons avec `spark`, l'étape finale peut être plus complexe. Des language très performants, tels que `spark`, reposent sur ce principe de la parallélisation en traitant les données par bloc tout en assurant une communication efficace entre ces blocs (le paradigme `map-reduce` est une application du principe `split`-`apply`-`combine` aux données volumineuses, @wickham2011split). 
 
-Des language très performants, tels que `spark`, reposent sur ce principe de la parallélisation en traitant les données par bloc tout en assurant une communication efficace entre ces blocs (le paradigme `map-reduce` est une application du principe `split`-`apply`-`combine` aux données volumineuses, @wickham2011split). 
+La parallélisation
 
 ### A quelles conditions la parallélisation est-elle utile?
 
-Comme l'exemple ci-dessus le suggère, **le calcul parallèle est particulièrement adapté dans des situations où on peut traiter des blocs de données indépendamment les uns des autres** (le traitement séquentiel de tels problèmes étant typique du problème *embarassingly parallel*). Les simulations numériques, le bootstrapping ou encore des statistiques descriptives par groupe sont autant de champs où l’utilisation du calcul parallèle s’avère utile. La parallélisation présente deux avantages principaux:
+Comme l'exemple ci-dessus le suggère, **le calcul parallèle est particulièrement adapté dans des situations où on peut traiter des blocs de données indépendamment les uns des autres** (le traitement séquentiel de tels problèmes étant typique du problème *embarassingly parallel*). Les simulations numériques, le bootstrapping ou encore des statistiques descriptives par groupe sont autant de champs où l’utilisation du calcul parallèle s’avère utile. La parallélisation présente trois avantages principaux:
 
 * Elle réduit le temps d'exécution de codes intensifs en calculs simples;
 * Elle tire parti de l'ensemble des ressources disponibles en termes de CPU; 
 * Elle est plus parcimonieuse en mémoire: en traitant des blocs moins volumineux, on réduit les besoins de mémoire (liés par exemple à des *copy* multiples).
 
+La parallélisation présente aussi des désavantages, qu'il faut garder à l'esprit:
+
+* Un processus `R` repose sur une session qui définit les objets, environnements et ressources disponibles pour les calculs. La parallélisation nécessite de créer des sessions supplémentaires pour les processus esclaves. Cette duplication est soit une duplication à l'identique de la session existante, ce qui a un coût en termes de performance ou de mémoire, ou une duplication d'une partie seulement des objets de la session maître, ce qui est un risque d'erreur accru. 
+* Le *debuggage* est plus complexe car la remontée d'information entre le processeur et le logiciel, en l'occurence l'origine de l'erreur, est plus complexe dans un système parallélisé
+
+
 Un point essentiel est que **paralléliser un traitement sur des données ne doit pas être le premier réflexe**. En effet, la parallélisation n'est pas une méthode d'optimisation d'un traitement statistique, mais simplement une technique qui permet d'accélérer l'exécution d'un traitement en mobilisant davantage de ressources. C'est pourquoi, avant de se tourner vers la parallélisation, il convient de s'assurer que les trois conditions suivantes sont vérifiées:
 
 * **le code est efficace sur un seul coeur**;
-* **le problème est adapté à la parallélisation**. La parallélisation ne prend sens que dans un cadre où on peut restructurer les données en blocs indépendants. Une somme cumulative sur un vecteur ne sera pas à une situation où la parallélisation apportera un gain (elle peut même ralentir le système). 
+* **le problème est adapté à la parallélisation**. La parallélisation ne prend sens que dans un cadre où on peut restructurer les données en blocs indépendants. Une somme cumulative sur un vecteur ne sera pas adaptée à la parallélisation (elle peut même ralentir le système). 
 * **le *hardware* est adapté à la parallélisation**. Comme mettre en place une structure de parallélisation a un coup en termes de temps, il faut que le gain de temps associé à la parallélisation des calculs soit suffisant. De manière générale, il ne faut pas espérer une division du temps de calcul par $n$ dans un ordinateur avec $n$ coeurs. A partir de 4 coeurs, on peut tout de même espérer des gains de temps significatifs. 
 
 Dans ce chapitre, nous montrerons les gains permis par la parallélisation en conjonction du `tidyverse`. Comme nous le montrerons dans le chapitre suivant, l'adoption de `data.table` offre une alternative intéressante et souvent préférable à une parallélisation aveugle. 
