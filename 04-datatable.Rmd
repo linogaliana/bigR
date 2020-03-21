@@ -21,8 +21,6 @@ knitr::include_graphics("./pics/comparatifH2O.png")
 
 Dans ce chapitre, nous allons explorer la manière dont `data.table` permet de résoudre efficacement de nombreuses tâches de maniement de données (import, manipulation, tri, jointure). Nous comparerons la vitesse et les besoins en mémoire par rapport à une approche `tidyverse`. Pour approfondir certains aspects du package (notamment l'indexation secondaire que nous laisserons de côté), plusieurs vignettes sont disponibles sur la [page de documentation](https://github.com/Rdatatable/data.table/wiki/Getting-started) du package^[Ce cours couvre de manière transversale les vignettes du package: *"Introduction to data.table"* ; *"Keys and fast binary search based subset"* ; *"Reference semantics"* : *"Efficient reshaping using data.tables"*. Les autres vignettes *"Benchmarking data.table"* et *"Secondary indices and auto indexing"* sont intéressantes également] et un résumé des commandes standards est disponible [ici](https://github.com/Rdatatable/data.table/wiki). La *cheatsheet* proposée par l'équipe Rstudio est disponible [ici](https://github.com/rstudio/cheatsheets/blob/master/datatable.pdf).
 
-CommOM: j'ai l'impression que tu fais un comparatif un peu long entre `data.table` et `tidyverse`, ça vaut le coup d'en faire une partie.
-
 ## Le choc des géants: `data.table` *versus* `tidyverse`
 
 **Sur la grammaire** La syntaxe `data.table` a mauvaise presse auprès des utilisateurs de `dplyr`^[ce [post](https://stackoverflow.com/questions/21435339/data-table-vs-dplyr-can-one-do-something-well-the-other-cant-or-does-poorly `stack overflow` est un bon exemple de la guerre larvée entre les utilisateurs des deux approches. On peut d'ailleurs y retrouver une réponse extensive d'Hadley Wickham (créateur dplyr) et des créateurs de `data.table` comparant et justifiant les deux approches.]). Il est effectivement certain que passer à la syntaxe `data.table` induit un coût d'apprentissage pour les utilisateurs habitués à la grammaire du `tidyverse`. Cependant, comme ces deux approches reposent sur la philosophie du `split`-`apply`-`combine`, passé la forme différente, ce qu'on sait faire avec l'un peut facilement être traduit avec l'autre^[Je recommande vivement la consultation de ce [post](https://atrebas.github.io/post/2019-03-03-datatable-dplyr/) qui compare de manière extensive les deux grammaires]. Les 5 verbes fondamentaux du `tidyverse` (`filter`, `select`, `mutate`, `arrange` et `summarise`) ont ainsi une traduction en `data.table`. Comme Hadley Wickham (créateur de `dplyr`) l'évoque, il est vrai que sans connaissance de `data.table`, les verbes équivalents sont moins intelligibles que ceux du `tidyverse`. En revanche, une fois que l'utilisateur est familiarisé avec elle, cette syntaxe est très puissante et permet de réaliser des opérations très complexes de manière assez aisée (peut-être plus qu'en utilisant les *nested* dataframes du tidyverse)^[A titre personnel, maintenant que j'y suis habitué, j'ai une préférence pour la syntaxe `data.table` après avoir été un grand utilisateur/amateur du `tidyverse`.].
@@ -36,15 +34,18 @@ Autrement dit, **traiter efficacement de grosses bases de données en `R` ne cor
 
 CommOM: Je pense que cette partie sur data.table en production est très intéressante, et hyper utile pour les utilisateurs. Tu pourrais peut-être la développer un peu. Un point à reformuler peut-être: veux-tu dire que data.table est extrêmement robuste en général, ou plutôt que l'absence de dépendances fait qu'il est peu probable qu'un code data.table casse suite à une mise à jour, contrairement à l'écosystème tidyverse qui a beaucoup de dépendances?
 
-**Avantages de `data.table` en production par rapport au `tidyverse`**: `data.table` ne dépend que de `R` base et n'importe que quelques fonctions du package `methods` (présent dans la distribution de base de `R`). Cela signifie que ce package est extrêmement robuste puisque la distribution `R` base est très stable. Le `tidyverse` étant un écosystème très récent avec de nombreuses dépendances, il est beaucoup moins stable que `data.table`. Pour des projets en production, on peut donc se fier à `data.table` ; à condition de faire attention aux effets induits du comportement de passage par référence sur lequel on reviendra.
+### Avantages de `data.table` en production par rapport au `tidyverse`**
 
-L'utilisation de `dplyr` en production peut poser problème. En effet, il ne s'agit pas d'un langage de programmation fonctionnelle mais d'une syntaxe visant à faciliter le maniement de données. `dplyr` étant un package jeune, il n'est pas aussi stable que `data.table`: certaines fonctionnalités peuvent rapidement ne plus être maintenues au profit d'autres.
+En premier lieu, `data.table` ne dépend que de `R` base et n'importe que quelques fonctions du package `methods` (présent dans la distribution de base de `R`). Cela signifie que ce package est extrêmement robuste puisque la distribution `R` base est très stable. Le `tidyverse` étant un écosystème très récent avec de nombreuses dépendances, il est beaucoup moins stable que `data.table`. Pour des projets en production, on peut donc se fier à `data.table` ; à condition de faire attention aux effets induits du comportement de passage par référence sur lequel on reviendra. `dplyr` étant un package jeune, il n'est pas aussi stable que `data.table`: certaines fonctionnalités peuvent rapidement ne plus être maintenues au profit d'autres. Un code `dplyr` peut ainsi rapidement être obsolète ou ne plus être fonctionnel car une dépendance ou fonction sous-jacente à évolué.
+
+Une deuxième raison incite à privilégier `data.table` plutôt que `dplyr` dans un processus de production. `dplyr` n'est pas d'un langage de programmation fonctionnelle mais une syntaxe visant à faciliter le maniement de données. 
+** Mettre évaluation standard vs non standard ici
 
 ## Principe
 
 ### Le `data.table`, un `data.frame` amélioré
 
-Le package `data.table` propose une version améliorée du `data.frame` de base: le `data.table` (surprenant, non?). On peut convertir un objet en data.table en utilisant `data.table::setDT()` ou `data.table::as.data.table()`. Pour créer un data.table, on utilisera la fonction `data.table::data.table()` comme on utiliserait la fonction `data.frame()` pour créer un dataframe. Comme avec un `tibble`, la visualisation est améliorée par rapport à un `data.frame` standard:
+Le package `data.table` propose une version améliorée du `data.frame` de base: le `data.table` (surprenant, non?). On peut **convertir** un objet en data.table en utilisant `data.table::setDT()` ou `data.table::as.data.table()`. La première méthode est préférable, nous expliquerons par la suite pourquoi. Pour **créer** un data.table, on utilisera la fonction `data.table::data.table()` comme on utiliserait la fonction `data.frame()` pour créer un dataframe. Comme avec un `tibble`, la visualisation est améliorée par rapport à un `data.frame` standard:
 
 ```{r}
 dt <- data.table::data.table(x = runif(1e4), y = runif(1e3))
@@ -61,15 +62,39 @@ options(datatable.print.class = FALSE)
 
 ### La syntaxe de `data.table`: l'opérateur `[...]`
 
-Dans un `data.frame` de base, on peut utiliser les crochets `df[...]` uniquement pour sélectionner des lignes ou des colonnes. Dans un `data.table`, on peut faire beaucoup plus de choses avec les crochets `dt[...]`. En fait, les instructions à l'intérieur des crochets peuvent être conçues comme des requêtes SQL mises en forme différemment. L'une des forces du package, sur lequel nous reviendrons, est que de nombreuses fonctionnalités de celui-ci reposent sur la modification par référence: pour créer une colonne `y = x+1` on n'a pas besoin de perdre du temps et mobiliser de la mémoire pour effectuer une copie temporaire du dataframe. 
+Dans un `data.frame` de base, on peut utiliser les crochets `df[...]` uniquement pour sélectionner des lignes ou des colonnes. Dans un `data.table`, on peut faire beaucoup plus de choses avec les crochets `dt[...]`. En fait, les instructions à l'intérieur des crochets peuvent être conçues comme des requêtes `SQL` mises en forme différemment. L'une des forces du package, sur lequel nous reviendrons, est que de nombreuses fonctionnalités de celui-ci reposent sur la modification par référence: pour créer une colonne `y = x+1` on n'a pas besoin de perdre du temps et mobiliser de la mémoire pour effectuer une copie temporaire du dataframe. 
 
 La syntaxe `data.table` prend la forme générale:
 
 ![**Structure de la syntaxe data.table**](./pics/DTstructure.PNG)
 
-CommOM: je mettrais bien ici un exemple très simple sur un tout petit dataframe, avec l'équivalent `dplyr`. Un truc du genre: dt[x > 3, sum(y), by = z] et df %>% filter(x > 3) %>% group_by(z) %>% summarise(sum(y)).
+Par exemple, pour effectuer une filtre et une moyenne par groupe sur les données d'exemple ci-dessous,
 
-Cette syntaxe est beaucoup moins bavarde que celle du `tidyverse` et est donc déroutante pour les débutants.
+```{r}
+# DATAFRAME D'EXEMPLE
+dt <- data.table::data.table(x = exp(rnorm(1000L)),
+                             y = rnorm(1000L),
+                             z = sample(seq_len(3L), size = 1000L,
+                                        replace = TRUE))
+dt
+```
+
+en `dplyr` on va exécuter la commande suivante:
+
+```{r}
+dt %>%
+  dplyr::filter(x > 3) %>%
+  dplyr::group_by(z) %>%
+  dplyr::summarise(sum(y))
+```
+
+alors qu'en `data.table`, la requête équivalente s'écrit:
+
+```{r}
+dt[x > 3, sum(y), by = z]
+```
+
+Cette syntaxe est beaucoup moins bavarde que celle du `tidyverse` et est donc déroutante pour les débutants. Pourtant, elle n'est pas forcément moins claire. Notez qu'on a appliqué des fonctions `dplyr` sur un `data.table` mais ce n'est pas une pratique recommandable: les 5 verbes du `tidyverse` ont une traduction correspondante en `data.table`, plus adaptée pour ces objets. 
 
 ### Quelles fonctions peut-on utiliser avec un `data.table`?
 
