@@ -38,8 +38,72 @@ CommOM: Je pense que cette partie sur data.table en production est très intére
 
 En premier lieu, `data.table` ne dépend que de `R` base et n'importe que quelques fonctions du package `methods` (présent dans la distribution de base de `R`). Cela signifie que ce package est extrêmement robuste puisque la distribution `R` base est très stable. Le `tidyverse` étant un écosystème très récent avec de nombreuses dépendances, il est beaucoup moins stable que `data.table`. Pour des projets en production, on peut donc se fier à `data.table` ; à condition de faire attention aux effets induits du comportement de passage par référence sur lequel on reviendra. `dplyr` étant un package jeune, il n'est pas aussi stable que `data.table`: certaines fonctionnalités peuvent rapidement ne plus être maintenues au profit d'autres. Un code `dplyr` peut ainsi rapidement être obsolète ou ne plus être fonctionnel car une dépendance ou fonction sous-jacente à évolué.
 
+### Aparté: évaluation standard et évaluation non-standard en `R`
+
 Une deuxième raison incite à privilégier `data.table` plutôt que `dplyr` dans un processus de production. `dplyr` n'est pas d'un langage de programmation fonctionnelle mais une syntaxe visant à faciliter le maniement de données. 
-** Mettre évaluation standard vs non standard ici
+
+Il existe deux manières de faire référence à un objet en `R`:
+
+* L'évaluation standard: on entre un nom, et R va aller chercher sa valeur en partant de `.GlobalEnv` pour descendre dans la hiérarchie du `searchpaths()`, jusqu’à trouver une valeur associée à votre symbole. S’il n’en trouve pas, il renvoie une erreur.
+* L'évaluation non-standard: `R` contourne la règle de la première recherche dans l'environnement global pour évaluer dans un contexte implicite la valeur derrière le nom.
+
+En évaluation non-standard, l'objet `x` est compris comme faisant partie de l'environnement en question (par exemple le dataframe `df` ou le data.table `dt`). Ce n'est que s'il n'existe pas dans cet environnement que `R` cherchera dans l'environnement global. `data.table` et `dplyr` reposent tous deux sur l'intégration standard (on cite les noms de colonnes sous la forme `dt[,x]` ou `df %>% mutate(x)` ce qui relève de l'intégration standard). 
+
+Un exemple ([emprunté à ThinkR](https://thinkr.fr/tidyeval/)) est sans doute plus explicite. 
+
+```{r, eval = FALSE}
+iris %>% dplyr::filter(Species == "setosa")
+```
+
+Le symbole `Species` ne réfère à rien si on l’envisage via l’évaluation standard : il n’existe pas de symbole `Species` dans l’environnement global pointant vers une valeur. Ici, le symbole `Species`  doit être évalué dans le contexte du data.frame iris. En base, et donc en évaluation standard, il faudra écrire `iris$Species`:
+
+```{r, eval = FALSE}
+iris[iris$Species == "setosa", ]
+```
+
+Comme `dplyr`, `data.table` fonctionne bien avec l'évaluation non standard. L'équivalent `data.table` de la ligne précédente peut s'écrire:
+
+```{r, eval = FALSE}
+data.table::as.data.table(iris)[Species == "setosa"]
+```
+
+Cette évaluation non standard est très pratique. Mais, dans une optique de programmation fonctionnelle, ou même lors d'un partage de code, elle peut devenir problématique car les objets dans l'environnement global d'un utilisateur sont inconnus. 
+
+Par exemple, les deux commandes ci-dessous ne vont pas produire le même résultat car il y a ambiguïté sur `Species`: parle-t-on de la variable ou de l'objet ?
+
+```{r}
+nrow(
+  data.table::as.data.table(iris)[Species == "setosa"]
+)
+
+Species <- "setosa"
+nrow(
+  data.table::as.data.table(iris)[Species == Species]
+)
+```
+
+L'intégration de l'évaluation standard, qui est à la fois pratique dans une approche de programmation fonctionnelle (on peut passer des noms de variable en argument d'une fonction) et désirable pour la reproductibilité des programmes est ardue à mettre en oeuvre dans `dplyr` alors qu'elle est très simple en `data.table`^[Si vous ne me croyez pas, essayer de comprendre du premier coup la [vignette dplyr](https://dplyr.tidyverse.org/articles/programming.html) sur le sujet]. 
+
+Il est possible d'appliquer de l'évaluation standard de trois manières en `data.table`. La première, probablement la plus pratique, est basée sur la fonction de base `get`. Il s'agit de mettre le nom de la variable en caractère et l'appeler dans les crochets avec `get`:
+
+Approche   | Evaluation standard (SE) | Evaluation non standard (NSE)  |
+-----------|--------------------------|--------------------------------|
+`dplyr`    |  `df %>% dplyr::filter(x < 10)` | `df %>% dplyr::filter(!!rlang::sym("x")<10)`
+`data.table`    |  `df[x<10]`              | `df[get('x')<10]`
+
+
+L'approche équivalente de `dplyr`, fondée sur `rlang` est beaucoup moins pratique.
+
+Les deux autres manières sont présentées ici mais ne seront pas approfondies^[Les personnes familières avec la syntaxe `unix` retrouveront une similarité entre les `..` en `data.table` et sur le terminal. C'est le même principe qui s'applique: `..` signifie "un niveau au-dessus": `..` signale à `data.table` de rechercher les variables `select_cols` un niveau au-dessus, i.e. dans l'environnement global dans ce cas.]:
+
+```{r, eval = FALSE}
+select_cols = c("x", "y")
+flights[ , ..select_cols]
+flights[ , select_cols, with = FALSE]
+```
+
+Le lecteur intéressé pourra se reporter aux vignettes `data.table` sur le sujet. 
+
 
 ## Principe
 
@@ -116,39 +180,6 @@ Sur ce problème simple, la solution `data.table` est deux fois plus rapide. On 
 
 A noter qu'il existe un package `dtplyr` qui propose des fonctions identiques à celles de `dplyr` (`filter`, `mutate`...) sur des objets `data.table`. Comme il s'agit d'une surcouche (qui traduit une fonction `dplyr` en l'équivalent `data.table` implicitement) il y a une perte (limitée) de performance inhérente à l'utilisation de ce package. Ce package a pour principalement inconvénient de ne pas proposer la copie par référence permise par l'opérateur `:=` (sur lequel nous reviendrons) dans le verbe équivalent `mutate` ; une des forces du package `data.table` disparaît. 
 
-### Aparté: évaluation standard et évaluation non-standard en `R`
-
-Il existe deux manières de faire référence à un objet en `R`:
-
-CommOM: il manque la définition de l'évaluation standard, non? Je ne comprends pas très bien cette partie, je veux bien la retravailler avec toi si cela te semble utile.
-
-* L'évaluation standard:
-* L'évaluation non-standard: les noms font référence.
-
-<!----
-les noms font référence aux valeurs. Si on tape `x`, c'est qu'on fait référence à l'objet dans l'environnement global qui s'appelle `x`
----->
-
-Par exemple,
-
-Approche   | Evaluation standard (SE) | Evaluation non standard (NSE)  |
------------|--------------------------|--------------------------------|
-`dplyr`    |  `df %>% dplyr::filter(x < 10)` | `df %>% dplyr::filter(!!rlang::sym("x")<10)`
-`dplyr`    |  `df[x<10]`              | `df[get('x')<10]`
-
-En évaluation non-standard, l'objet `x` est compris comme faisant partie de l'environnement en question (par exemple le dataframe `df` ou le data.table `dt`). Ce n'est que s'il n'existe pas dans cet environnement que `R` cherchera dans l'environnement global.
-
-`data.table` et `dplyr` reposent tous deux sur l'intégration standard (on cite les noms de colonnes sous la forme `dt[,x]` ou `df %>% mutate(x)` ce qui relève de l'intégration standard). L'intégration de l'évaluation standard, qui est à la fois pratique dans une approche de programmation fonctionnelle (on peut passer des noms de variable en argument d'une fonction) et désirable pour la reproductibilité des programmes est ardue à mettre en oeuvre dans `dplyr` alors qu'elle est très simple en `data.table`^[Si vous ne me croyez pas, essayer de comprendre du premier coup la [vignette dplyr](https://dplyr.tidyverse.org/articles/programming.html) sur le sujet]. 
-
-Il est possible d'appliquer de l'évaluation non-standard de deux autres manières en `data.table`. Elles sont présentées ici mais ne seront pas approfondies^[Les personnes familières avec la syntaxe `unix` retrouveront une similarité entre les `..` en `data.table` et sur le terminal. C'est le même principe qui s'applique: `..` signifie "un niveau au-dessus": `..` signale à `data.table` de rechercher les variables `select_cols` un niveau au-dessus, i.e. dans l'environnement global dans ce cas.]:
-
-```{r, eval = FALSE}
-select_cols = c("x", "y")
-flights[ , ..select_cols]
-flights[ , select_cols, with = FALSE]
-```
-
-Le lecteur intéressé pourra se reporter aux vignettes `data.table` sur le sujet. 
 
 ## Lecture et écriture de données
 
