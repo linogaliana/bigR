@@ -193,7 +193,7 @@ Dans ce premier comparatif, on va comparer les vitesses d'exécution des fonctio
 * `readr::read_csv()`;
 * `read.csv()` du langage de base.
 
-On utilise le fichier `sirus_abstract.csv` qui est un extrait de sirus sur un million d'observations. Mon ordinateur a 4 coeurs et 8 Go de RAM.
+On utilise le fichier `sirus_abstract.csv` qui est un extrait de sirus sur un million d'observations.
 
 ```{r, eval = FALSE}
 # Code ayant généré sirus_abstract.csv
@@ -287,7 +287,7 @@ On va utiliser ce vecteur `cols` par la suite donc gardez-le dans l'environnemen
 **Exercice** 
 
 1. Utiliser l'option `select` pour garder les colonnes `sirus_id`, `nic`, `ape`, `eff_3112_et`;
-2. Utiliser l'option `drop` et le vector `cols` pour éliminer les colonnes qui commencent par `adr_` ou `eff_`. Vous pouvez utiliser, pour filtrer `cols`: une expression régulière et `grepl` ou la fonction de base `startsWith`. Si vous êtes à l'aise avec le package `stringr` ou `stringi` vous pouvez les utiliser.
+2. Utiliser l'option `drop` et le vector `cols` pour éliminer les colonnes qui commencent par `adr_` ou `eff_`. Vous pouvez utiliser, pour filtrer `cols`: une expression régulière insérée dans `grepl` ou la fonction de base `startsWith`. Si vous êtes à l'aise avec le package `stringr` ou `stringi` vous pouvez les utiliser.
 
 ```{r}
 # Question 1 ---------------
@@ -313,16 +313,12 @@ Les options précédentes permettaient de sélectionner des colonnes. Pour filtr
 1. d'éviter de charger des données qui mobilisent de la mémoire temporairement. Comme on l'a évoqué dans le chapitre 1, `R` a une gestion globale des données caractères: faire le filtre avant de charger les données évite d'ajouter des éléments au cache pour les supprimer ensuite;
 2. Les commandes *shell* sont plus rapides que des surcouches `R`.
 
-CommOM: ce point m'a l'air intéressant (je ne connaissais pas cette possibilité), mais c'est peut-être trop avancé pour un public qui découvre `data.table` et qui ne se sert peut-être jamais du shell? A mettre en annexe?
-
 **Exercice**
 
 Je recommande de tester sur le fichier `sirus_abstract.csv` avant d'essayer sur `sirus_2017.csv`
 
-CommOM: ah bah forcément, c'est Toulouse, pas Dunkerque!
-
-1. On ne va garder que des observations où apparaît la ville TOULOUSE.
-2. On ne va garder que les observations où n'apparaît pas la ville TOULOUSE.
+1. On ne va garder que des observations où apparaît la ville `TOULOUSE`.
+2. On ne va garder que les observations où n'apparaît pas la ville `TOULOUSE`.
 
 ```{r}
 # git_bash <- "C:\Users\W3CRK9\AppData\Local\Programs\Git\git-bash.exe"
@@ -355,12 +351,12 @@ system.time({
 ### Import d'autres formats de données
 
 * Formats binaires `fst`: c'est un format beaucoup plus rapide à l'import que le csv. La fonction `fst::read_fst` propose une option `as.data.table` qu'on peut évaluer à `TRUE` (la valeur par défaut est `FALSE` ce qui importe sous forme de `data.frame`).
-* Formats `sas`: pas de miracle, il faut utiliser la fonction `haven::read_sas` et convertir en `data.table` avec `data.table::setDT` function. La version de développement de `haven` intègre depuis Juillet 2019 des paramètres qui peuvent être précieux pour réduire les besoins mémoires et CPU lors de l'import: `col_select` et `n_max`. Ces fonctionnalités ne sont pas encore disponibles sur la version `CRAN` en revanche.
+* Formats `sas`: pas de miracle, il faut utiliser la fonction `haven::read_sas` et convertir en `data.table` avec `data.table::setDT` function. `haven` intègre depuis peu des paramètres qui peuvent être précieux pour réduire les besoins mémoires et CPU lors de l'import: `col_select` et `n_max`.
 
 
 ### Comparaison des écritures
 
-1. Faire `microbenchmark`
+Partons des dataframe suivants:
 
 ```{r}
 df <- data.frame(x = runif(10e4),
@@ -368,6 +364,12 @@ df <- data.frame(x = runif(10e4),
 dt <- data.table::setDT(df)
 dtib <- dplyr::as_tibble(df)
 ```
+
+La fonction pour écrire des données en fichier plat est `fwrite` (*fast write*), alternative à `readr::write_csv`.
+
+**Exercice**
+
+1. Comparer les temps d'exécution sur 20 essais avec `microbenchmark`
 
 ```{r}
 m <- microbenchmark::microbenchmark(
@@ -382,17 +384,12 @@ ggplot2::autoplot(m)
 file.remove("base.csv","datatable.csv","readr.csv")
 ```
 
-2. Faire profvis
+2. Regarder les besoins mémoire avec `profvis`
 
 ```{r}
-df <- data.frame(x = runif(10e6),
-                 y = runif(10e6))
-dt <- data.table::setDT(df)
-dtib <- dplyr::as_tibble(df)
-
 profvis::profvis({
     data.table::fwrite(dt, file = "datatable.csv")
-    readr::write_csv(dt, path = "readr.csv")
+    readr::write_csv(dtib, path = "readr.csv")
 })
 
 file.remove("datatable.csv","readr.csv")
@@ -402,7 +399,7 @@ file.remove("datatable.csv","readr.csv")
 
 ### Retour sur les copies
 
-On a évoqué, lors du premier chapitre, la différence entre la copie en place et la copie en modification. On distingue parfois de :
+Il existe deux types de copie:
 
 * `deep copy` (copie profonde): la copie est indépendante de l'objet copié. Autrement dit, les modifications faites sur la copie (on parle parfois d'objet enfant, *child object*) n'affectent pas l'objet copié (l'objet parent, *parent object*). Il y a duplication dans un autre espace mémoire de l'objet initial. 
 * `shallow copy` (copie superficielle): une relation de référence (typiquement via un pointeur) est créée entre l'objet copié et la copie. Les modifications faites sur les éléments communs affectent les deux objets: modifier les éléments partagés du parent ou de l'enfant modifiera l'autre objet. Il n'y a pas de duplication de l'espace physique en mémoire. 
@@ -412,6 +409,7 @@ Ce [tutoriel](https://realpython.com/copying-python-objects/) explique très bie
 
 Les `shallow copy` réduisent les besoins mémoires et sont donc plus performantes. `data.table` repose sur ce principe: on modifie les colonnes ou attributs d'un `data.table` par référence, ce qui réduit grandement les besoins mémoire de `R` (en temps normal, `R` a besoin de 2-3x plus de mémoire que la taille de l'environnement. Avec `data.table`, on peut réduire drastiquement cette marge de manoeuvre). Les `shallow copy` nécessitent en revanche de prendre plus de précautions si on désire ré-utiliser un objet parent. 
 
+La fonction `tracemem` peut être utilisé pour suivre l'évolution des emplacements mémoire des objets `R`
 
 ```{r}
 df <- data.frame("id" = rep(c("a","b"), 10),
@@ -429,7 +427,7 @@ Jusqu'à `R 3.1` (avril 2014), les copies profondes étaient automatiques. Cela 
 
 ### L'opérateur `:=`
 
-L'opérateur `data.table` `:=` est construit autour du principe du passage par référence qui évite donc la copie superficielle comme profonde. On peut le comprendre comme le `mutate` de `dplyr` sauf que l'opérateur `data.table` n'effectue pas de copie superficielle contrairement à la fonction `dplyr` (ce [thread stack overflow](https://stackoverflow.com/questions/21701537/does-mutate-change-tbl-by-reference) peut être consulté sur le sujet). `:=` utilise un pointeur d'où la parcimonie en termes de mémoire
+L'opérateur `data.table` `:=` est construit autour du principe du **passage par référence** qui évite donc la copie superficielle comme profonde. On peut le comprendre comme le `mutate` de `dplyr` sauf que l'opérateur `data.table` n'effectue pas de copie superficielle contrairement à la fonction `dplyr` (ce [thread stack overflow](https://stackoverflow.com/questions/21701537/does-mutate-change-tbl-by-reference) peut être consulté sur le sujet). `:=` utilise un pointeur d'où la parcimonie en termes de mémoire
 
 Pour créer une nouvelle colonne à un objet `data.table`, on n'a pas besoin d'utilser l'assignation `<-`, il suffit d'appeler `:=` de la manière suivante:
 
@@ -452,7 +450,7 @@ Malgré l'absence de `<-`, le résultat est retourné de manière invisible. `da
 
 **Exercice**
 
-Reprendre les données `sirus` complètes
+On va partir des données `sirus` complètes. 
 
 1. Créer la colonne `myvar` à partir de la commande `runif` en faisant attention de ne pas se tromper sur la longueur du vecteur aléatoire (utiliser la commande `nrow` ou la commande `data.table` équivalente `.N`)
 
@@ -604,16 +602,29 @@ df[sample(.N, size = 1e4, replace = FALSE)]
 
 ### Remplacement conditionnel
 
-Les requêtes sur la dimension `i` peuvent servir à créer de nouvelles colonnes. Dans ce cas, on peut penser la dimension `i` comme un `update` en SQL ou un `case when`
+Les requêtes sur la dimension `i` peuvent servir à créer de nouvelles colonnes. Dans ce cas, on peut penser la dimension `i` comme un `update` en SQL ou un `case when`. Dans le tidyverse, la manière adaptée d'effectuer un remplacement conditionnel est d'utiliser `dplyr::case_when`. C'est possible en `data.table` mais il y a mieux grâce au remplacement conditionnel.
+
+Par exemple, pour créer une variable `iledefrance` qui vaut `TRUE` pour un département appartenant à la région, avec `data.table` on fera de la manière suivante:
+
+```{r}
+df[,'iledefrance' := FALSE]
+df[region %in% c(75, 77, 78, 91, 92, 93, 94, 95), iledefrance := TRUE]
+```
+
+**Exercice**
+1. Mesurer les besoins mémoire et le temps d'exécution grâce à `profvis`
+2. Faire la même chose pour le code équivalent avec `dplyr::case_when`
+3. Conclure
 
 ```{r}
 profvis::profvis({
-  
 df[,'iledefrance' := FALSE]
 df[region %in% c(75, 77, 78, 91, 92, 93, 94, 95), iledefrance := TRUE]
+})
 
 gc()
 
+profvis::profvis({
 df %>% dplyr::mutate(region = dplyr::case_when(
   region %in% c(75, 77, 78, 91, 92, 93, 94, 95) ~ TRUE,
   TRUE ~ FALSE
@@ -741,7 +752,7 @@ df[,.('effectif' = sum(eff_etp_uniteLegale, na.rm = TRUE)), by = "adr_et_post"]
 On peut bien-sûr utiliser plusieurs variables de groupes ou effectuer les agrégations sur plusieurs colonnes.
 
 **Exercice**
-Effectuer les étapes 1 et 2 dans un profvis::profvis séparé
+Effectuer les étapes 1 et 2 dans un `profvis::profvis` séparé
 1. Comptez le nombre d'observations (`.N`), que vous stockerez dans une variable `n` et le nombre de valeurs uniques de la variable `apet` (avec la fonction `data.table::uniqueN`), que vous stockerez dans la variable `ndist` par département (variable `region`). Stocker le résultat dans un objet `df_agg`.
 2. Quelle vitesse et besoin mémoire ? Comparer avec l'approche équivalente en tidyverse
 
