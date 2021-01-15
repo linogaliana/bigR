@@ -10,15 +10,16 @@ name: bookdown
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: linogaliana/pocker
+    container: rocker/geospatial
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
       - name: Install Dependencies
         run: |
-          Rscript -e "install.packages(c('remotes','rmarkdown','bookdown'))"
+          Rscript -e "install.packages(c('remotes','rmarkdown','bookdown', 'reticulate'))"
           Rscript -e "devtools::install_deps()"
           Rscript -e "install.packages(c('httr', 'openssl', 'roxygen2', 'rsconnect', 'xml2', 'devtools'), dependencies = TRUE)"
+          Rscript -e "reticulate::conda_create()"
       - name: Render Book
         run: Rscript -e 'bookdown::render_book("index.Rmd", output_dir = "_public")'
       - uses: actions/upload-artifact@v1
