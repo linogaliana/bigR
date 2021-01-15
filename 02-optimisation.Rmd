@@ -21,7 +21,6 @@ library(reticulate)
 
 #if (Sys.getenv("LOCAL")==""){
   # CHANGE HERE TO YOUR PATH
-Sys.setenv(RETICULATE_PYTHON = "/anaconda3/bin/python3.6")
 
 # CREATE A CONDA ENVIRONMENT JUST FOR RETICULATE
 #reticulate::use_condaenv("Reticulate")
