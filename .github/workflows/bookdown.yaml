@@ -25,9 +25,6 @@ jobs:
         env:
           RETICULATE_PYTHON: "/github/home/.local/share/r-miniconda/envs/r-reticulate/bin/python"
         run: |
-          Rscript -e "reticulate::conda_list()"
-          Rscript -e "reticulate::use_condaenv('r-reticulate')"
-          Rscript -e "print(Sys.getenv('RETICULATE_PYTHON'))"
           Rscript -e 'bookdown::render_book("index.Rmd", output_dir = "_public")'
       - uses: actions/upload-artifact@v1
         with:
