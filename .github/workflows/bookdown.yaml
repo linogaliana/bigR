@@ -21,6 +21,7 @@ jobs:
           Rscript -e "install.packages(c('httr', 'openssl', 'roxygen2', 'rsconnect', 'xml2', 'devtools'), dependencies = TRUE)"
           Rscript -e "reticulate::install_miniconda()"
           Rscript -e "reticulate::conda_create()"
+          Rscript -e "reticulate::py_install('numpy')"
       - name: Render Book
         env:
           RETICULATE_PYTHON: "/github/home/.local/share/r-miniconda/envs/r-reticulate/bin/python"
