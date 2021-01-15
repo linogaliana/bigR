@@ -369,7 +369,7 @@ dplyr::between
 fonctionne comme un *wrapper* d'une fonction sous-jacente en `C++` qui est, elle-même, stockée dans un fichier compilé `.dll` (sous windows)
 
 ```{r}
-dplyr:::`_dplyr_between`
+dplyr:::`dplyr_between`
 ```
 
 Pour obtenir de bonnes performances en `R`, il est important d'accéder aux routines sous-jacentes `C` ou `Fortran` le plus rapidement possible. Dans la mesure où appeler une fonction a un coût en terme de temps d'exécution, il est important de minimiser autant que possible le nombre d'appels pour accéder aux fonctions `C` ou `Fortran`.
