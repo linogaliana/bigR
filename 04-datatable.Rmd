@@ -3,7 +3,7 @@
 <script src="./js/hideOutput.js"></script>
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
 knitr::opts_knit$set(root.dir = "~")
 ```
 
@@ -201,7 +201,7 @@ On utilise le fichier `sirus_abstract.csv` qui est un extrait de sirus sur un mi
 ```{r, eval = FALSE}
 # Code ayant généré sirus_abstract.csv
 if (!file.exists("~/data/sirus_abstract.csv")) {
-  df <- data.table::fread('https://github.com/SSP-Lab/Hackathon-2018')
+  df <- data.table::fread("~/data/sirus_2017.csv")
   data.table::fwrite(
     df[sample(.N, size = 1e6, replace = FALSE)],
     file = "~/data/sirus_abstract.csv"
