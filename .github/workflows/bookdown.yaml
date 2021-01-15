@@ -22,7 +22,10 @@ jobs:
           Rscript -e "reticulate::install_miniconda()"
           Rscript -e "reticulate::conda_create()"
       - name: Render Book
-        run: Rscript -e 'bookdown::render_book("index.Rmd", output_dir = "_public")'
+        run: |
+          Rscript -e "reticulate::conda_list()"
+          Rscript -e "reticulate::use_condaenv('r-reticulate')"
+          Rscript -e 'bookdown::render_book("index.Rmd", output_dir = "_public")'
       - uses: actions/upload-artifact@v1
         with:
           name: _public
