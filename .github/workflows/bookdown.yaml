@@ -22,6 +22,8 @@ jobs:
           Rscript -e "reticulate::install_miniconda()"
           Rscript -e "reticulate::conda_create()"
       - name: Render Book
+        env:
+          RETICULATE_PYTHON: "/github/home/.local/share/r-miniconda/envs/r-reticulate/bin/python"
         run: |
           Rscript -e "reticulate::conda_list()"
           Rscript -e "reticulate::use_condaenv('r-reticulate')"
