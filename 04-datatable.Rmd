@@ -7,6 +7,9 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(root.dir = "~")
 ```
 
+```{r}
+library(magrittr)
+```
 
 `R` est réputé être un langage lent et de nombreux exemples sur internet proposent des comparatifs de vitesse qui suggèrent que `python` est plus rapide (nous avons déjà proposé un petit comparatif dans l'introduction de ce cours). Il est vrai que le langage de base `R` est lent mais le développement de packages tels que `data.table` et `tidyverse` ont pour conséquence que la grammaire de base est de moins en moins utilisée de manière exclusive. Ainsi, pour rendre réellement compte des performances du langage `R`, il convient de mesurer les vitesses d'exécution de ces deux approches. A ce jeu, le package `data.table` est très performant:
 
