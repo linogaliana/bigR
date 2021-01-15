@@ -200,11 +200,13 @@ On utilise le fichier `sirus_abstract.csv` qui est un extrait de sirus sur un mi
 
 ```{r, eval = FALSE}
 # Code ayant généré sirus_abstract.csv
-df <- data.table::fread("~/data/sirus_2017.csv")
-data.table::fwrite(
-  df[sample(.N, size = 1e6, replace = FALSE)],
-  file = "~/data/sirus_abstract.csv"
-)
+if (!file.exists("~/data/sirus_abstract.csv")) {
+  df <- data.table::fread('https://github.com/SSP-Lab/Hackathon-2018')
+  data.table::fwrite(
+    df[sample(.N, size = 1e6, replace = FALSE)],
+    file = "~/data/sirus_abstract.csv"
+  )
+}
 ```
 
 La fonction de lecture du package `data.table` est `fread` pour *fast read*. Elle permet de lire des fichiers texte, qu'ils soient zippés ou non. Pour accélérer la routine, la fonction repose sur le principe du multithreading (cf. chapitre précédent) dans `C`. 
@@ -263,7 +265,7 @@ On peut utiliser l'option `verbose = TRUE` pour avoir une meilleure idée de la 
 
 ```{r, eval=FALSE}
 df_3 <- data.table::fread("~/data/sirus_abstract.csv",
-                            verbose = TRUE)
+                          verbose = TRUE)
 ```
 
 ### Les options de la fonction `fread`
@@ -340,7 +342,7 @@ L'avantage de filtrer sur les lignes avec `cmd` est le gain de temps:
 
 ```{r}
 system.time(
-df <- data.table::fread(cmd = 'grep TOULOUSE ~/data/sirus_abstract.csv')
+  df <- data.table::fread(cmd = 'grep TOULOUSE ~/data/sirus_abstract.csv')
 )
 
 system.time({
@@ -391,8 +393,8 @@ file.remove("base.csv","datatable.csv","readr.csv")
 
 ```{r}
 profvis::profvis({
-    data.table::fwrite(dt, file = "datatable.csv")
-    readr::write_csv(dtib, path = "readr.csv")
+  data.table::fwrite(dt, file = "datatable.csv")
+  readr::write_csv(dtib, path = "readr.csv")
 })
 
 file.remove("datatable.csv","readr.csv")
@@ -444,7 +446,7 @@ DT[,x := values] # EVALUATION NON STANDARD
 DT[, c("colA", "colB", ...) := list(valA, valB)]
 DT[, `:=`(colA = valA, # valA is assigned to colA
           colB = valB # valB is assigned to colB)
-      )]
+)]
 ```   
 
 Malgré l'absence de `<-`, le résultat est retourné de manière invisible. `data.table` et `dplyr` auront des performances proches lors de la création ex-nihilo d'une colonne. En revanche, `data.table` sera plus efficace lors de l'utilisation d'un objet déjà existant (au lieu de faire une copie superficielle, il utilisera directement un pointeur)
@@ -466,9 +468,9 @@ df[,`:=` ('myvar1' = myvar,
 
 2. Comparer les besoins mémoire et la vitesse des approches data.table et dplyr. On va créer une variable `cell_id` qui alloue chaque observation à un carreau de 1km. On va mettre en pratique une astuce pratique, par exemple utilisée par le package `btb`.  Pour cela,
 
-    * Créer `df2 <- dplyr::as_tibble(df)`. 
-    * Créer des colonnes x_cell et y_cell qui sont, respectivement, égales à 1000*round(x/1000) et 1000*round(y/1000)
-    * Créer la colonne cell_id égale à `paste(x_cell,y_cell, sep='_')`
+* Créer `df2 <- dplyr::as_tibble(df)`. 
+* Créer des colonnes x_cell et y_cell qui sont, respectivement, égales à 1000*round(x/1000) et 1000*round(y/1000)
+* Créer la colonne cell_id égale à `paste(x_cell,y_cell, sep='_')`
 
 3. Créer une colonne aléatoire `w` et creer `w2` sous la forme `w - mean(w)`
 
@@ -480,41 +482,41 @@ import::from("magrittr","%>%")
 
 profvis::profvis({
   
-# Approche data.table
-# df[,c('x_cell','y_cell') := list(
-#   1000*round(x/1000), 1000*round(y/1000)
-# )]
-df[,`:=`(
-  'x_cell' = 1000*round(x/1000), 'y_cell' = 1000*round(y/1000)
-)]
-df[,'cell_id' := paste(x_cell,y_cell, sep='_')]
-# ou mieux en evaluation standard
-# df[,'cell_id' := paste(get('x_cell'),
-#                        get('y_cell'), sep='_')]
-
-# On verra par la suite qu'on peut aussi faire
-# df[,c('x_cell','y_cell') := lapply(.SD, function(x) 1000*round(x/1000)), .SDcols = c('x','y')]
-
-df[,'cell_id' := paste(x_cell,y_cell, sep='_')]
-
-df[,'w' := runif(.N)]
-df[,'w2' := w - mean(w)]
-gc()
-
-
-
-# Approche dplyr
-df2 <- df2 %>%
-  dplyr::mutate('x_cell' = 1000*round(x/1000), 'y_cell' = 1000*round(y/1000))
-
-df2 <- df2 %>%
-  dplyr::mutate('cell_id' = paste(x_cell, y_cell, sep='_'))
-
-df2 <- df2 %>% dplyr::mutate(w = runif(nrow(df2)))
-
-df2 <- df2 %>%
-  dplyr::mutate(w2 = w - mean(w))
-
+  # Approche data.table
+  # df[,c('x_cell','y_cell') := list(
+  #   1000*round(x/1000), 1000*round(y/1000)
+  # )]
+  df[,`:=`(
+    'x_cell' = 1000*round(x/1000), 'y_cell' = 1000*round(y/1000)
+  )]
+  df[,'cell_id' := paste(x_cell,y_cell, sep='_')]
+  # ou mieux en evaluation standard
+  # df[,'cell_id' := paste(get('x_cell'),
+  #                        get('y_cell'), sep='_')]
+  
+  # On verra par la suite qu'on peut aussi faire
+  # df[,c('x_cell','y_cell') := lapply(.SD, function(x) 1000*round(x/1000)), .SDcols = c('x','y')]
+  
+  df[,'cell_id' := paste(x_cell,y_cell, sep='_')]
+  
+  df[,'w' := runif(.N)]
+  df[,'w2' := w - mean(w)]
+  gc()
+  
+  
+  
+  # Approche dplyr
+  df2 <- df2 %>%
+    dplyr::mutate('x_cell' = 1000*round(x/1000), 'y_cell' = 1000*round(y/1000))
+  
+  df2 <- df2 %>%
+    dplyr::mutate('cell_id' = paste(x_cell, y_cell, sep='_'))
+  
+  df2 <- df2 %>% dplyr::mutate(w = runif(nrow(df2)))
+  
+  df2 <- df2 %>%
+    dplyr::mutate(w2 = w - mean(w))
+  
 })
 
 ```
@@ -577,7 +579,7 @@ df[region == 75] # NSE
 
 ```{r}
 profvis::profvis({
-df[(grepl("ECOLE(S?)|COLLEGE(S?)|LYCEE(S?)",denom)) & (region %in% c(75, 77, 78, 91, 92, 93, 94, 95))]
+  df[(grepl("ECOLE(S?)|COLLEGE(S?)|LYCEE(S?)",denom)) & (region %in% c(75, 77, 78, 91, 92, 93, 94, 95))]
   df %>% dplyr::filter((grepl("ECOLE(S?)|COLLEGE(S?)|LYCEE(S?)",denom)) & (region %in% c(75, 77, 78, 91, 92, 93, 94, 95)))
 })
 ```
@@ -621,18 +623,18 @@ df[region %in% c(75, 77, 78, 91, 92, 93, 94, 95), iledefrance := TRUE]
 
 ```{r}
 profvis::profvis({
-df[,'iledefrance' := FALSE]
-df[region %in% c(75, 77, 78, 91, 92, 93, 94, 95), iledefrance := TRUE]
+  df[,'iledefrance' := FALSE]
+  df[region %in% c(75, 77, 78, 91, 92, 93, 94, 95), iledefrance := TRUE]
 })
 
 gc()
 
 profvis::profvis({
-df %>% dplyr::mutate(region = dplyr::case_when(
-  region %in% c(75, 77, 78, 91, 92, 93, 94, 95) ~ TRUE,
-  TRUE ~ FALSE
-))
-
+  df %>% dplyr::mutate(region = dplyr::case_when(
+    region %in% c(75, 77, 78, 91, 92, 93, 94, 95) ~ TRUE,
+    TRUE ~ FALSE
+  ))
+  
 })
 
 ```
@@ -761,36 +763,36 @@ Effectuer les étapes 1 et 2 dans un `profvis::profvis` séparé
 
 ```{r}
 profvis::profvis({
-# Question 1
-df_agg <- df[,.('n' = .N,
-                'ndist' = data.table::uniqueN(apet)), by = "region"]
+  # Question 1
+  df_agg <- df[,.('n' = .N,
+                  'ndist' = data.table::uniqueN(apet)), by = "region"]
 })
 df_agg
 
 df_tbl <- dplyr::as_tibble(df)
 profvis::profvis({
   
-df_agg_tbl <- df_tbl %>%
-  dplyr::group_by(region) %>%
-  dplyr::summarise(
-    n = n(), ndist = dplyr::n_distinct(apet)
-  )
+  df_agg_tbl <- df_tbl %>%
+    dplyr::group_by(region) %>%
+    dplyr::summarise(
+      n = n(), ndist = dplyr::n_distinct(apet)
+    )
 })
 
 profvis::profvis({
-# Question 1
-df_agg <- df[,.('q1' = Hmisc::wtd.mean()), by = "region"]
+  # Question 1
+  df_agg <- df[,.('q1' = Hmisc::wtd.mean()), by = "region"]
 })
 df_agg
 
 df_tbl <- dplyr::as_tibble(df)
 profvis::profvis({
   
-df_agg_tbl <- df_tbl %>%
-  dplyr::group_by(region) %>%
-  dplyr::summarise(
-    n = n(), ndist = dplyr::n_distinct(apet)
-  )
+  df_agg_tbl <- df_tbl %>%
+    dplyr::group_by(region) %>%
+    dplyr::summarise(
+      n = n(), ndist = dplyr::n_distinct(apet)
+    )
 })
 
 ```
@@ -816,11 +818,11 @@ Comparez l'approche `data.table` et `dplyr` en créant une variable `effect_moye
 
 ```{r}
 profvis::profvis({
-df[,effect_moyen := mean(eff_etp_uniteLegale,
-                         na.rm = TRUE), by = region]
-df_tbl <- df_tbl %>% dplyr::group_by(region) %>%
-  dplyr::mutate(effect_moyen = mean(eff_etp_uniteLegale,
-                                    na.rm = TRUE))
+  df[,effect_moyen := mean(eff_etp_uniteLegale,
+                           na.rm = TRUE), by = region]
+  df_tbl <- df_tbl %>% dplyr::group_by(region) %>%
+    dplyr::mutate(effect_moyen = mean(eff_etp_uniteLegale,
+                                      na.rm = TRUE))
 })
 ```
 
@@ -935,7 +937,7 @@ df_key <- data.table::copy(df)
 df_index <- data.table::copy(df)
 df_tbl <- dplyr::as_tibble(df)
 
-  
+
 # Question 2
 data.table::setkeyv(df_key, c("region","apet"))
 data.table::setindexv(df_index, c("region","apet"))
@@ -971,11 +973,11 @@ La [vignette](https://cran.r-project.org/web/packages/data.table/vignettes/datat
 <!--------
 Vector scan approach:
 
-    The column x is searched for the value “g” row by row, on all 20 million of them. This results in a logical vector of size 20 million, with values TRUE, FALSE or NA corresponding to x’s value.
+The column x is searched for the value “g” row by row, on all 20 million of them. This results in a logical vector of size 20 million, with values TRUE, FALSE or NA corresponding to x’s value.
 
-    Similarly, the column y is searched for 877 on all 20 million rows one by one, and stored in another logical vector.
+Similarly, the column y is searched for 877 on all 20 million rows one by one, and stored in another logical vector.
 
-    Element wise & operations are performed on the intermediate logical vectors and all the rows where the expression evaluates to TRUE are returned.
+Element wise & operations are performed on the intermediate logical vectors and all the rows where the expression evaluates to TRUE are returned.
 
 This is what we call a vector scan approach. And this is quite inefficient, especially on larger tables and when one needs repeated subsetting, because it has to scan through all the rows each time.
 
@@ -1027,13 +1029,13 @@ m2 <- microbenchmark::microbenchmark(
         mean(eff_3112_uniteLegale, na.rm = TRUE)),
      by = c("region", "apet")],
   df_key[,.(.N,
-        sum(eff_etp_uniteLegale, na.rm=TRUE),
-        mean(eff_3112_uniteLegale, na.rm = TRUE)),
-        by = c("region", "apet")],
+            sum(eff_etp_uniteLegale, na.rm=TRUE),
+            mean(eff_3112_uniteLegale, na.rm = TRUE)),
+         by = c("region", "apet")],
   df_index[,.(.N,
-        sum(eff_etp_uniteLegale, na.rm=TRUE),
-        mean(eff_3112_uniteLegale, na.rm = TRUE)),
-        by = c("region", "apet")],
+              sum(eff_etp_uniteLegale, na.rm=TRUE),
+              mean(eff_3112_uniteLegale, na.rm = TRUE)),
+           by = c("region", "apet")],
   df_tbl %>% dplyr::group_by(region, apet) %>%
     dplyr::summarise(dplyr::n()),
   times = 20L
@@ -1059,9 +1061,9 @@ df1 <- data.table::copy(df)
 df2 <- data.table::copy(df)
 df3 <- data.table::copy(df)
 ggplot2::autoplot(microbenchmark::microbenchmark(
-     df1[!is.finite(get('wealth2009')), 'wealth2009' := 0][],
-     df2[,'wealth2009' := lest::if_else(!is.finite(get('wealth2009')),0,get('wealth2009'))][],
-     df3[,'wealth2009' := hutils::if_else(!is.finite(get('wealth2009')),0,get('wealth2009'))][],
-     times = 20
- ))
+  df1[!is.finite(get('wealth2009')), 'wealth2009' := 0][],
+  df2[,'wealth2009' := lest::if_else(!is.finite(get('wealth2009')),0,get('wealth2009'))][],
+  df3[,'wealth2009' := hutils::if_else(!is.finite(get('wealth2009')),0,get('wealth2009'))][],
+  times = 20
+))
 ```
