@@ -14,7 +14,7 @@ knitr::opts_knit$set(root.dir = "~")
 <!--------
 <div class="superbigimage">
 ```{r, echo = FALSE, fig.height=30}
-knitr::include_graphics("./pics/comparatifH2O.png")
+# knitr::include_graphics("./pics/comparatifH2O.png")
 ```
 </div>
 -------->
